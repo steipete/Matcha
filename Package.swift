@@ -63,7 +63,7 @@ let package = Package(
         // Test targets
         .testTarget(
             name: "MatchaTests",
-            dependencies: ["Matcha"],
+            dependencies: ["Matcha", "MatchaBubbles", "MatchaStyle"],
             swiftSettings: [
                 .swiftLanguageMode(.v6),
                 .enableUpcomingFeature("StrictConcurrency"),

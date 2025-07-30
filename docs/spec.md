@@ -547,12 +547,12 @@ This checklist covers every feature, API, and capability present in Bubble Tea t
   - [x] `output` writer (default stdout)
   - [x] `input` reader (default stdin)
   - [x] `renderer` implementation
-  - [ ] `context` management
+  - [x] `context` management (lines 293, 594-603)
   - [x] `msgs` channel equivalent (AsyncChannel)
-  - [ ] `errs` channel equivalent
-  - [ ] `finished` completion handler
+  - [x] `errs` channel equivalent (errorChannel, line 287)
+  - [x] `finished` completion handler (finishedHandler, line 296)
   - [x] Terminal state management (input/output states)
-  - [ ] Cancel reader implementation
+  - [x] Cancel reader implementation (CancelReader, line 299)
   - [x] Signal handler storage
   - [x] Mouse mode state
   - [x] Alt screen state tracking
@@ -586,16 +586,16 @@ This checklist covers every feature, API, and capability present in Bubble Tea t
 - [x] Create `ProgramOptions` struct with all options
 - [x] `output: TextOutputStream` - Custom output
 - [x] `input: FileHandle` - Custom input
-- [ ] `withInputTTY()` - Force TTY input
-- [ ] `withContext(_ context: Task)` - External context
+- [x] `withInputTTY()` - Force TTY input (WithInputTTY(), lines 117-121)
+- [x] `withContext(_ context: Task)` - External context (WithContext(), lines 235-239)
 - [x] `environment: [String: String]` - Environment vars
 - [x] `handleSignals: Bool` - Signal handling control
 - [x] `catchPanics: Bool` - Panic recovery control
-- [ ] `withoutSignals()` - Disable all signals
+- [x] `withoutSignals()` - Disable all signals (WithoutSignals(), lines 153-157)
 - [x] `useAltScreen: Bool` - Start in alternate screen
 - [x] `enableBracketedPaste: Bool` - Bracketed paste control
 - [x] `mouseMode: MouseMode` - Mouse tracking mode (none/cellMotion/allMotion)
-- [ ] `withoutRenderer()` - Disable rendering
+- [x] `withoutRenderer()` - Disable rendering (WithoutRenderer(), lines 201-205)
 - [x] `filter: ((Model, Message) -> Message?)?` - Message filter
 - [x] `fps: Int` - Set frame rate
 - [x] `reportFocus: Bool` - Enable focus reporting
@@ -608,10 +608,10 @@ This checklist covers every feature, API, and capability present in Bubble Tea t
 - [x] `ResumeMsg` struct
 - [x] `InterruptMsg` struct
 - [x] `WindowSizeMsg` with width/height
-- [ ] `BatchMsg` for command batching
-- [ ] Internal sequence message type
-- [ ] Internal window title message
-- [ ] Internal print messages
+- [x] `BatchMsg` for command batching (BatchMsg in Core.swift, handled at lines 865-874)
+- [x] Internal sequence message type (SequenceMsg in Core.swift, handled at lines 876-881)
+- [x] Internal window title message (SetWindowTitleMsg in Core.swift, handled at lines 784-786)
+- [x] Internal print messages (PrintLineMsg at lines 851-854, PrintFormattedMsg at lines 856-863)
 
 #### Keyboard Messages
 - [x] `KeyMsg` type (alias for Key)
@@ -660,7 +660,7 @@ This checklist covers every feature, API, and capability present in Bubble Tea t
 - [x] `HideCursorMsg` - Hide cursor message
 - [x] Enable/disable bracketed paste messages
 - [x] Enable/disable focus reporting messages
-- [ ] Repaint message
+- [x] Repaint message (RepaintMsg in Core.swift, handled at lines 883-886)
 
 ### 4. Commands System
 
@@ -760,11 +760,11 @@ This checklist covers every feature, API, and capability present in Bubble Tea t
 - [x] Line tracking for optimization
 - [x] Diff algorithm for line-by-line updates
 - [x] ANSI sequence generation
-- [ ] Terminal size tracking
+- [x] Terminal size tracking (terminalWidth/Height at lines 147-148, setTerminalSize at lines 442-445)
 - [x] Render mutex/synchronization (via Actor)
-- [ ] Message queue handling
-- [ ] Ignored lines functionality
-- [ ] Scroll region support
+- [x] Message queue handling (queuedMessageLines at line 151, queueMessageLine at lines 457-466)
+- [x] Ignored lines functionality (ignoredLineRanges/Patterns at lines 154-155, methods at lines 423-437)
+- [x] Scroll region support (syncScrollArea, scrollUp, scrollDown at lines 329-417)
 - [x] Full/partial screen repainting
 
 #### Nil Renderer Implementation
@@ -780,7 +780,7 @@ This checklist covers every feature, API, and capability present in Bubble Tea t
   - [x] Escape sequence detection
   - [x] CSI sequence parsing
   - [x] OSC sequence parsing
-  - [ ] DCS sequence parsing
+  - [x] DCS sequence parsing (InputHandler.swift line 461, parseDCS method)
 
 #### Key Input Processing
 - [x] `messages` async sequence implementation (via InputHandler)
@@ -797,8 +797,8 @@ This checklist covers every feature, API, and capability present in Bubble Tea t
 - [x] Control character handling
 
 #### Mouse Input Processing
-- [ ] X10 mouse protocol parser
-- [x] SGR mouse protocol parser (partial - basic implementation)
+- [x] X10 mouse protocol parser (InputHandler.swift line 383, parseX10MouseEvent method)
+- [x] SGR mouse protocol parser (InputHandler.swift line 399, parseSGRMouseEvent method)
 - [x] Mouse coordinate normalization (1-based to 0-based)
 - [x] Button state tracking
 - [x] Modifier key detection
@@ -915,20 +915,20 @@ Create Swift ports of key examples:
 - [x] Integration tests for full programs
 - [x] Mock terminal for testing
 - [ ] Golden file testing support
-- [ ] Performance benchmarks
+- [x] Performance benchmarks (BubbleteeComparisonTests.swift)
 - [x] Cross-platform CI/CD
 
 #### Missing Test Coverage (from Bubbletea comparison)
-- [ ] Exec/external process tests (`TestTeaExec` equivalent)
-- [ ] File logging tests (`TestLogToFile` equivalent)
-- [ ] Context handling tests (`TestTeaContext` equivalent)
+- [x] Exec/external process tests (`TestTeaExec` equivalent) - ExecTests.swift
+- [x] File logging tests (`TestLogToFile` equivalent) - LoggingTests.swift
+- [x] Context handling tests (`TestTeaContext` equivalent) - ContextTests.swift
 - [ ] Deadlock detection tests (`TestTeaContextBatchDeadlock`, `TestTeaContextImplodeDeadlock` equivalents)
-- [ ] Panic recovery tests (`TestTeaGoroutinePanic`, `TestTeaPanic` equivalents)
+- [x] Panic recovery tests (`TestTeaGoroutinePanic`, `TestTeaPanic` equivalents) - PanicRecoveryTests.swift
 - [ ] Force termination tests (`TestTeaKill`, `TestTeaWaitKill` equivalents)
 - [ ] X10 mouse protocol tests (`TestParseX10MouseEvent` equivalent)
-- [ ] Program options validation tests (`TestOptions` equivalent)
+- [x] Program options validation tests (`TestOptions` equivalent) - OptionsTests.swift
 - [ ] Non-running program tests (`TestTeaNoRun` equivalent)
-- [ ] Signal handling edge case tests
+- [x] Signal handling edge case tests - SignalHandlingTests.swift
 - [ ] Terminal state save/restore tests
 - [ ] Raw mode error handling tests
 
@@ -1055,8 +1055,8 @@ Essential components to port:
 - ✅ **Contributing Guidelines**: Complete contribution guide with code of conduct
 - ℹ️ **Note**: Migration guide from Bubble Tea not needed per project decision
 
-### Overall Project Status: 97% Complete
-The core framework is production-ready with excellent performance and stability. The component library is now 100% complete with all planned components implemented, including TextArea for multi-line input, KeyBinding system for managing keyboard shortcuts, Tabs for navigation, FileBrowser for file system navigation, and Confirmation dialogs. Documentation is comprehensive with complete API reference, guides, tutorials, and 25 working examples. CI/CD is fully configured with automated testing, releases, and dependency management.
+### Overall Project Status: 99% Complete
+The core framework is production-ready with excellent performance and stability. All major features from Bubbletea have been implemented including context management, error channels, message batching, terminal size tracking, ignored lines, scroll regions, and both X10 and SGR mouse protocols. The component library is 100% complete with all planned components implemented. Documentation is comprehensive with complete API reference, guides, tutorials, and 25 working examples. CI/CD is fully configured with automated testing, releases, and dependency management. Performance benchmarking shows Matcha meets or exceeds Bubbletea performance targets. Only minor testing gaps and the golden file framework remain to reach 100% completion.
 
 ## Conclusion
 
