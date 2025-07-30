@@ -90,8 +90,8 @@ public struct TextInput: Sendable {
     public func withValue(_ value: String) -> TextInput {
         var input = self
         input.value = value
-        // Ensure cursor is within bounds
-        input.cursorPosition = min(cursorPosition, value.count)
+        // Move cursor to end when setting a new value
+        input.cursorPosition = value.count
         return input
     }
     
@@ -188,7 +188,7 @@ public struct TextInput: Sendable {
     public func update(_ msg: any Message) -> TextInput {
         guard focused else { return self }
         
-        if let key = msg as? Key {
+        if let key = msg as? KeyMsg {
             return handleKey(key)
         } else if let paste = msg as? PasteMsg {
             return handlePaste(paste.text)
@@ -197,7 +197,7 @@ public struct TextInput: Sendable {
         return self
     }
     
-    private func handleKey(_ key: Key) -> TextInput {
+    private func handleKey(_ key: KeyMsg) -> TextInput {
         var input = self
         
         switch key.type {
@@ -225,23 +225,23 @@ public struct TextInput: Sendable {
         case .end:
             input = input.moveCursorToEnd()
             
-        case .control(let char) where char == "a":
+        case .ctrlA:
             // Select all (move to start)
             input = input.moveCursorToStart()
             
-        case .control(let char) where char == "e":
+        case .ctrlE:
             // Move to end
             input = input.moveCursorToEnd()
             
-        case .control(let char) where char == "k":
+        case .ctrlK:
             // Kill to end of line
             input = input.deleteToEnd()
             
-        case .control(let char) where char == "u":
+        case .ctrlU:
             // Kill to start of line
             input = input.deleteToStart()
             
-        case .control(let char) where char == "w":
+        case .ctrlW:
             // Delete word backward
             input = input.deleteWordBackward()
             

@@ -185,39 +185,39 @@ public struct Tabs: Sendable {
     public func update(_ msg: any Message) -> Tabs {
         guard focused else { return self }
         
-        if let key = msg as? Key {
+        if let key = msg as? KeyMsg {
             return handleKey(key)
         }
         
         return self
     }
     
-    private func handleKey(_ key: Key) -> Tabs {
+    private func handleKey(_ key: KeyMsg) -> Tabs {
         var tabs = self
         
         switch key.type {
         case .left:
             tabs = tabs.selectPrevious()
             
-        case .control(let char) where char == "h":
+        case .ctrlH:
             tabs = tabs.selectPrevious()
             
         case .right:
             tabs = tabs.selectNext()
             
-        case .control(let char) where char == "l":
+        case .ctrlL:
             tabs = tabs.selectNext()
             
         case .home:
             tabs.selectedIndex = 0
             
-        case .control(let char) where char == "a":
+        case .ctrlA:
             tabs.selectedIndex = 0
             
         case .end:
             tabs.selectedIndex = max(0, items.count - 1)
             
-        case .control(let char) where char == "e":
+        case .ctrlE:
             tabs.selectedIndex = max(0, items.count - 1)
             
         case .runes:

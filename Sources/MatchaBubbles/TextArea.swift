@@ -262,7 +262,7 @@ public struct TextArea: Sendable {
     public func update(_ msg: any Message) -> TextArea {
         guard focused else { return self }
         
-        if let key = msg as? Key {
+        if let key = msg as? KeyMsg {
             return handleKey(key)
         } else if let paste = msg as? PasteMsg {
             return handlePaste(paste.text)
@@ -271,7 +271,7 @@ public struct TextArea: Sendable {
         return self
     }
     
-    private func handleKey(_ key: Key) -> TextArea {
+    private func handleKey(_ key: KeyMsg) -> TextArea {
         var area = self
         
         switch key.type {
@@ -319,23 +319,23 @@ public struct TextArea: Sendable {
         case .pageDown:
             area = area.pageDown()
             
-        case .control(let char) where char == "a":
+        case .ctrlA:
             // Move to start of line
             area = area.moveCursorToLineStart()
             
-        case .control(let char) where char == "e":
+        case .ctrlE:
             // Move to end of line
             area = area.moveCursorToLineEnd()
             
-        case .control(let char) where char == "k":
+        case .ctrlK:
             // Kill to end of line
             area = area.deleteToEndOfLine()
             
-        case .control(let char) where char == "u":
+        case .ctrlU:
             // Kill to start of line
             area = area.deleteToStartOfLine()
             
-        case .control(let char) where char == "w":
+        case .ctrlW:
             // Delete word backward
             area = area.deleteWordBackward()
             

@@ -207,14 +207,15 @@ public struct List: Sendable {
     public func update(_ msg: any Message) -> List {
         guard focused else { return self }
         
-        if let key = msg as? Key {
+        if let key = msg as? KeyMsg {
             return handleKey(key)
         }
         
         return self
     }
     
-    private func handleKey(_ key: Key) -> List {
+    private func handleKey(_ key: KeyMsg) -> List {
+        // Handle key types first
         switch key.type {
         case .up:
             return moveUp()
@@ -228,6 +229,25 @@ public struct List: Sendable {
             return pageUp()
         case .pageDown:
             return pageDown()
+        case .runes:
+            // Handle vim-style keybindings
+            guard let rune = key.runes.first else { return self }
+            switch rune {
+            case "j":
+                return moveDown()
+            case "k":
+                return moveUp()
+            case "g":
+                return moveToStart()
+            case "G":
+                return moveToEnd()
+            case "f":
+                return pageDown()  // Ctrl+f in vim
+            case "b":
+                return pageUp()    // Ctrl+b in vim
+            default:
+                return self
+            }
         default:
             return self
         }
@@ -286,7 +306,11 @@ public struct List: Sendable {
         guard height > 0 else { return moveToStart() }
         
         var list = self
-        let pageSize = height - 2 // Account for help/pagination
+        var pageSize = height
+        if showHelp { pageSize -= 1 }
+        if showPagination && height > 0 && items.count > height - 2 { pageSize -= 1 }
+        pageSize = max(1, pageSize) // Ensure at least 1
+        
         list.selectedIndex = max(0, selectedIndex - pageSize)
         list.viewportOffset = list.calculateViewportOffset()
         return list
@@ -297,7 +321,11 @@ public struct List: Sendable {
         guard height > 0, !items.isEmpty else { return moveToEnd() }
         
         var list = self
-        let pageSize = height - 2 // Account for help/pagination
+        var pageSize = height
+        if showHelp { pageSize -= 1 }
+        if showPagination && height > 0 && items.count > height - 2 { pageSize -= 1 }
+        pageSize = max(1, pageSize) // Ensure at least 1
+        
         list.selectedIndex = min(items.count - 1, selectedIndex + pageSize)
         list.viewportOffset = list.calculateViewportOffset()
         return list

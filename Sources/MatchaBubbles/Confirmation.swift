@@ -217,27 +217,27 @@ public struct Confirmation: Sendable {
     public func update(_ msg: any Message) -> Confirmation {
         guard active else { return self }
         
-        if let key = msg as? Key {
+        if let key = msg as? KeyMsg {
             return handleKey(key)
         }
         
         return self
     }
     
-    private func handleKey(_ key: Key) -> Confirmation {
+    private func handleKey(_ key: KeyMsg) -> Confirmation {
         var confirmation = self
         
         switch key.type {
         case .left:
             confirmation.selected = .yes
             
-        case .control(let char) where char == "h":
+        case .ctrlH:
             confirmation.selected = .yes
             
         case .right, .tab:
             confirmation.selected = .no
             
-        case .control(let char) where char == "l":
+        case .ctrlL:
             confirmation.selected = .no
             
         case .enter, .space:

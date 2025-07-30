@@ -233,27 +233,27 @@ public struct FileBrowser: Sendable {
     public func update(_ msg: any Message) -> FileBrowser {
         guard focused else { return self }
         
-        if let key = msg as? Key {
+        if let key = msg as? KeyMsg {
             return handleKey(key)
         }
         
         return self
     }
     
-    private func handleKey(_ key: Key) -> FileBrowser {
+    private func handleKey(_ key: KeyMsg) -> FileBrowser {
         var browser = self
         
         switch key.type {
         case .up:
             browser = browser.moveUp()
             
-        case .control(let char) where char == "k":
+        case .ctrlK:
             browser = browser.moveUp()
             
         case .down:
             browser = browser.moveDown()
             
-        case .control(let char) where char == "j":
+        case .ctrlJ:
             browser = browser.moveDown()
             
         case .pageUp:
@@ -277,7 +277,7 @@ public struct FileBrowser: Sendable {
                 }
             }
             
-        case .control(let char) where char == "l":
+        case .ctrlL:
             if let selected = browser.selectedEntry {
                 if selected.isDirectory {
                     browser = browser.enterDirectory(selected.path)
@@ -287,14 +287,14 @@ public struct FileBrowser: Sendable {
         case .left:
             browser = browser.goUp()
             
-        case .control(let char) where char == "h":
+        case .ctrlH:
             browser = browser.goUp()
             
-        case .control(let char) where char == ".":
+        case .ctrlUnderscore:
             // Toggle hidden files
             browser = browser.withShowHidden(!browser.showHidden)
             
-        case .control(let char) where char == "r":
+        case .ctrlR:
             // Refresh
             browser = browser.refresh()
             
