@@ -1,0 +1,31 @@
+# SwiftFormat configuration for Matcha
+# Compatible with Swift 6
+
+# Format Options
+--swiftversion 6.0
+
+# Indentation
+--indent 4
+
+# Line Length
+--maxwidth 120
+
+# Wrapping
+--wraparguments before-first
+--wrapparameters before-first
+--wrapcollections before-first
+
+# Spacing
+--nospaceoperators ...,..<
+--trimwhitespace always
+
+# Line Breaks
+--linebreaks lf
+
+# Other Style Choices
+--importgrouping testable-bottom
+--funcattributes preserve
+--typeattributes preserve
+
+# Rules to disable
+--disable unusedArguments,wrapMultilineStatementBraces

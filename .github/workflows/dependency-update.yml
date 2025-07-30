@@ -1,0 +1,57 @@
+name: Dependency Update
+
+on:
+  schedule:
+    # Run every Monday at 00:00 UTC
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+
+jobs:
+  update-dependencies:
+    name: Update Dependencies
+    runs-on: macos-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: '6.0'
+      
+      - name: Update Package.resolved
+        run: |
+          rm -f Package.resolved
+          swift package update
+      
+      - name: Test with Updated Dependencies
+        run: |
+          swift build --warnings-as-errors
+          swift test
+      
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: 'chore: update dependencies'
+          title: 'Update Swift Package Dependencies'
+          body: |
+            ## Automated Dependency Update
+            
+            This PR updates the `Package.resolved` file with the latest compatible versions of all dependencies.
+            
+            ### Changes
+            - Updated Package.resolved
+            
+            ### Testing
+            - ✅ Build passes with updated dependencies
+            - ✅ All tests pass
+            
+            Please review the dependency changes and merge if everything looks good.
+          branch: deps/update-dependencies
+          delete-branch: true
+          labels: |
+            dependencies
+            automated

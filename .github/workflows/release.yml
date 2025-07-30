@@ -1,0 +1,85 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: '6.0'
+      
+      - name: Build and Test
+        run: |
+          swift build -c release --warnings-as-errors
+          swift test
+      
+      - name: Generate Documentation
+        run: |
+          swift package generate-documentation \
+            --target Matcha \
+            --target MatchaBubbles \
+            --target MatchaStyle \
+            --output-path ./docs/api-reference
+      
+      - name: Create Documentation Archive
+        run: |
+          cd docs
+          zip -r ../matcha-docs-${{ github.ref_name }}.zip api-reference/
+      
+      - name: Build Examples Archive
+        run: |
+          mkdir -p release/examples
+          for example in Examples/*/; do
+            if [ -d "$example" ]; then
+              name=$(basename $example)
+              echo "Building $name..."
+              swift build -c release --product $name
+              cp .build/release/$name release/examples/
+            fi
+          done
+          cd release
+          zip -r ../matcha-examples-${{ github.ref_name }}.zip examples/
+      
+      - name: Create Release Notes
+        id: release_notes
+        run: |
+          echo "# Release ${{ github.ref_name }}" > release_notes.md
+          echo "" >> release_notes.md
+          echo "## What's New" >> release_notes.md
+          echo "" >> release_notes.md
+          # Extract changes from CHANGELOG.md if it exists
+          if [ -f CHANGELOG.md ]; then
+            awk '/^## \[/ {if (p) exit; p=1; next} p' CHANGELOG.md >> release_notes.md
+          else
+            echo "See commit history for changes." >> release_notes.md
+          fi
+          echo "" >> release_notes.md
+          echo "## Installation" >> release_notes.md
+          echo "" >> release_notes.md
+          echo '```swift' >> release_notes.md
+          echo 'dependencies: [' >> release_notes.md
+          echo '    .package(url: "https://github.com/yourusername/Matcha.git", from: "${{ github.ref_name }}")' >> release_notes.md
+          echo ']' >> release_notes.md
+          echo '```' >> release_notes.md
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release_notes.md
+          files: |
+            matcha-docs-${{ github.ref_name }}.zip
+            matcha-examples-${{ github.ref_name }}.zip
+          draft: false
+          prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}

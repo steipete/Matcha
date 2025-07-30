@@ -1,0 +1,29 @@
+name: Swift Format
+
+on:
+  pull_request:
+    paths:
+      - '**.swift'
+      - '.swiftformat'
+
+jobs:
+  swift-format:
+    name: Check Swift Formatting
+    runs-on: macos-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install SwiftFormat
+        run: brew install swiftformat
+      
+      - name: Check Format
+        run: |
+          swiftformat --version
+          swiftformat . --lint --verbose
+          
+      - name: Format Diff
+        if: failure()
+        run: |
+          echo "::error::Swift formatting issues found. Run 'swiftformat .' locally to fix."
+          swiftformat . --dryrun

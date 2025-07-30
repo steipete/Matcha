@@ -1,0 +1,145 @@
+//
+//  MockRenderer.swift
+//  MatchaTests
+//
+//  Mock renderer for testing.
+//
+
+import Foundation
+@testable import Matcha
+
+/// Mock renderer that captures all rendering operations
+public actor MockRenderer: Renderer {
+    public var renderCalls: [String] = []
+    public var isStarted = false
+    public var isStopped = false
+    
+    public private(set) var altScreenActive = false
+    public private(set) var bracketedPasteActive = false
+    public private(set) var reportsFocus = false
+    public private(set) var cursorVisible = true
+    public private(set) var windowTitle = ""
+    
+    public init() {}
+    
+    public func start() async {
+        isStarted = true
+        renderCalls.append("start()")
+    }
+    
+    public func stop() async {
+        isStopped = true
+        renderCalls.append("stop()")
+    }
+    
+    public func kill() async {
+        await stop()
+        renderCalls.append("kill()")
+    }
+    
+    public func write(_ content: String) async {
+        renderCalls.append("write(\(content.debugDescription))")
+    }
+    
+    public func repaint() async {
+        renderCalls.append("repaint()")
+    }
+    
+    public func clearScreen() async {
+        renderCalls.append("clearScreen()")
+    }
+    
+    public func clear() async {
+        await clearScreen()
+    }
+    
+    public func enterAltScreen() async {
+        altScreenActive = true
+        renderCalls.append("enterAltScreen()")
+    }
+    
+    public func exitAltScreen() async {
+        altScreenActive = false
+        renderCalls.append("exitAltScreen()")
+    }
+    
+    public func showCursor() async {
+        cursorVisible = true
+        renderCalls.append("showCursor()")
+    }
+    
+    public func hideCursor() async {
+        cursorVisible = false
+        renderCalls.append("hideCursor()")
+    }
+    
+    public func enableMouseCellMotion() async {
+        renderCalls.append("enableMouseCellMotion()")
+    }
+    
+    public func disableMouseCellMotion() async {
+        renderCalls.append("disableMouseCellMotion()")
+    }
+    
+    public func enableMouseAllMotion() async {
+        renderCalls.append("enableMouseAllMotion()")
+    }
+    
+    public func disableMouseAllMotion() async {
+        renderCalls.append("disableMouseAllMotion()")
+    }
+    
+    public func enableMouseSGRMode() async {
+        renderCalls.append("enableMouseSGRMode()")
+    }
+    
+    public func disableMouseSGRMode() async {
+        renderCalls.append("disableMouseSGRMode()")
+    }
+    
+    public func enableBracketedPaste() async {
+        bracketedPasteActive = true
+        renderCalls.append("enableBracketedPaste()")
+    }
+    
+    public func disableBracketedPaste() async {
+        bracketedPasteActive = false
+        renderCalls.append("disableBracketedPaste()")
+    }
+    
+    public func setWindowTitle(_ title: String) async {
+        windowTitle = title
+        renderCalls.append("setWindowTitle(\(title.debugDescription))")
+    }
+    
+    public func enableReportFocus() async {
+        reportsFocus = true
+        renderCalls.append("enableReportFocus()")
+    }
+    
+    public func disableReportFocus() async {
+        reportsFocus = false
+        renderCalls.append("disableReportFocus()")
+    }
+    
+    public func resetLinesRendered() async {
+        renderCalls.append("resetLinesRendered()")
+    }
+    
+    /// Verifies that a specific rendering call was made
+    public func verifyCalled(_ expectedCall: String) -> Bool {
+        return renderCalls.contains(expectedCall)
+    }
+    
+    /// Gets the number of times a specific call was made
+    public func callCount(containing substring: String) -> Int {
+        return renderCalls.filter { $0.contains(substring) }.count
+    }
+    
+    /// Resets all captured calls
+    public func reset() {
+        renderCalls = []
+        isStarted = false
+        isStopped = false
+    }
+}
