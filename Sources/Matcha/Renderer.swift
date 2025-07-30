@@ -182,8 +182,7 @@ public actor StandardRenderer: Renderer {
         // Skip in test environments
         if let outputStream = output as? FileHandle,
            outputStream === FileHandle.standardOutput,
-           let size = try? Terminal.current.getSize()
-        {
+           let size = try? Terminal.current.getSize() {
             terminalWidth = size.columns
             terminalHeight = size.rows
         }
@@ -628,17 +627,13 @@ public actor StandardRenderer: Renderer {
     /// Checks if a line should be ignored based on configuration
     private func isLineIgnored(lineIndex: Int, content: String) -> Bool {
         // Check if line index is in any ignored range
-        for range in ignoredLineRanges {
-            if range.contains(lineIndex) {
-                return true
-            }
+        for range in ignoredLineRanges where range.contains(lineIndex) {
+            return true
         }
 
         // Check if line content matches any ignored pattern
-        for pattern in ignoredLinePatterns {
-            if content.contains(pattern) {
-                return true
-            }
+        for pattern in ignoredLinePatterns where content.contains(pattern) {
+            return true
         }
 
         return false

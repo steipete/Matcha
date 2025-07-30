@@ -110,7 +110,7 @@ public struct Spinner: Sendable {
 
     /// Update the spinner (advances animation frame)
     public mutating func update<M: Message>(msg: any Message) -> Command<M>? {
-        if let _ = msg as? SpinnerTickMsg, isAnimating {
+        if msg is SpinnerTickMsg, isAnimating {
             frameIndex = (frameIndex + 1) % style.frames.count
             return tick()
         }
@@ -119,7 +119,7 @@ public struct Spinner: Sendable {
 
     /// Get the tick command for animation
     public func tick<M: Message>() -> Command<M> {
-        every(.milliseconds(style.frameDuration)) { _ in
+        Tick(.milliseconds(style.frameDuration)) { _ in
             SpinnerTickMsg() as! M
         }
     }

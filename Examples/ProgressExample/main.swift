@@ -69,7 +69,7 @@ public struct ProgressModel: Model {
         case .start:
             model.isRunning.toggle()
             if model.isRunning {
-                return (model, Matcha.tick(.milliseconds(50)) { _ in Message.tick })
+                return (model, Tick(.milliseconds(50)) { _ in Message.tick })
             }
             return (model, nil)
 
@@ -88,7 +88,7 @@ public struct ProgressModel: Model {
 
                 // Continue ticking if not complete
                 if model.downloadProgress.percent < 1.0 || model.animationProgress.percent < 1.0 {
-                    return (model, Matcha.tick(.milliseconds(50)) { _ in Message.tick })
+                    return (model, Tick(.milliseconds(50)) { _ in Message.tick })
                 } else {
                     model.isRunning = false
                 }

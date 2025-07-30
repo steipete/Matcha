@@ -88,7 +88,7 @@ public struct DashboardModel: Model {
                 (LogLevel.info, "Background task completed"),
                 (LogLevel.warning, "Disk space running low"),
                 (LogLevel.info, "Configuration updated"),
-                (LogLevel.error, "Network timeout occurred"),
+                (LogLevel.error, "Network timeout occurred")
             ]
             let (level, message) = messages.randomElement()!
             return LogEntry(timestamp: Date(), level: level, message: message)
@@ -134,7 +134,7 @@ public struct DashboardModel: Model {
                 Task(id: UUID(), title: "Process data batch #2", status: .pending, progress: 0),
                 Task(id: UUID(), title: "Generate reports", status: .pending, progress: 0),
                 Task(id: UUID(), title: "Send notifications", status: .pending, progress: 0),
-                Task(id: UUID(), title: "Cleanup temporary files", status: .pending, progress: 0),
+                Task(id: UUID(), title: "Cleanup temporary files", status: .pending, progress: 0)
             ]
         }
     }
@@ -184,15 +184,13 @@ public struct DashboardModel: Model {
             }
 
             // Update running tasks
-            for i in 0..<model.taskList.count {
-                if model.taskList[i].status == .running {
-                    model.taskList[i].progress = min(100, model.taskList[i].progress + Int.random(in: 1...5))
-                    if model.taskList[i].progress >= 100 {
-                        model.taskList[i].status = .completed
-                        // Start the next pending task
-                        if let nextIndex = model.taskList.firstIndex(where: { $0.status == .pending }) {
-                            model.taskList[nextIndex].status = .running
-                        }
+            for i in 0..<model.taskList.count where model.taskList[i].status == .running {
+                model.taskList[i].progress = min(100, model.taskList[i].progress + Int.random(in: 1...5))
+                if model.taskList[i].progress >= 100 {
+                    model.taskList[i].status = .completed
+                    // Start the next pending task
+                    if let nextIndex = model.taskList.firstIndex(where: { $0.status == .pending }) {
+                        model.taskList[nextIndex].status = .running
                     }
                 }
             }

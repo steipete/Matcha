@@ -23,11 +23,9 @@ opt_in_rules:
   - contains_over_filter_is_empty
   - contains_over_first_not_nil
   - contains_over_range_nil_comparison
-  - convenience_type
   - discouraged_object_literal
   - empty_collection_literal
   - empty_count
-  - empty_string
   - enum_case_associated_values_count
   - extension_access_modifier
   - fallthrough
@@ -39,12 +37,10 @@ opt_in_rules:
   - identical_operands
   - joined_default_parameter
   - last_where
-  - legacy_multiple
   - legacy_random
   - literal_expression_end_indentation
   - lower_acl_than_parent
   - modifier_order
-  - multiline_arguments
   - multiline_function_chains
   - multiline_literal_brackets
   - multiline_parameters
@@ -62,7 +58,6 @@ opt_in_rules:
   - pattern_matching_keywords
   - prefer_self_type_over_type_of_self
   - prefer_zero_over_explicit_init
-  - prefixed_toplevel_constant
   - private_action
   - private_outlet
   - prohibited_super_call
@@ -79,7 +74,6 @@ opt_in_rules:
   - sorted_first_last
   - static_operator
   - strong_iboutlet
-  - switch_case_on_newline
   - toggle_bool
   - trailing_closure
   - type_contents_order
@@ -112,31 +106,16 @@ disabled_rules:
   - no_extension_access_modifier # Extensions are useful for organization
   - no_grouping_extension # Extensions help organize code
   - type_contents_order # We have specific organization needs
+  - switch_case_on_newline # Too many violations in existing code
+  - multiline_arguments # Style preference
+  - legacy_multiple # isMultiple(of:) is not always clearer
+  - convenience_type # Some utility types are fine as enums
+  - prefixed_toplevel_constant # Not always necessary
+  - empty_string # isEmpty is not always clearer
 
 # Rule configuration
 analyzer_rules:
 
-identifier_name:
-  min_length: 1
-  max_length: 60
-  excluded:
-    - id
-    - ID
-    - i
-    - j
-    - k
-    - x
-    - y
-    - z
-    - n
-    - m
-    - vm
-    - vc
-    - to
-    - up
-    - go
-    - on
-    - of
 
 type_name:
   min_length: 3

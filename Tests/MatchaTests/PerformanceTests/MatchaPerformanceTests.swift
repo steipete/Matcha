@@ -36,7 +36,7 @@ struct MatchaPerformanceTests {
     @Test("Complex model update performance with 1000 items")
     func complexModelUpdatePerformance() throws {
         var model = ComplexTestModel()
-        model.items = Array(repeating: "Item", count: 1000)
+        model.items = Array(repeating: "Item", count: 1_000)
 
         try benchmarkTester.assertBenchmark(
             "Complex Model Update (1000 items)",
@@ -50,7 +50,7 @@ struct MatchaPerformanceTests {
     @Test("Large model update performance with 10k items")
     func largeModelUpdatePerformance() throws {
         var model = ComplexTestModel()
-        model.items = Array(repeating: "Item", count: 10000)
+        model.items = Array(repeating: "Item", count: 10_000)
 
         try benchmarkTester.assertBenchmark(
             "Large Model Update (10k items)",
@@ -92,7 +92,7 @@ struct MatchaPerformanceTests {
     @Test("Large view rendering performance with 1000 items")
     func largeViewRenderingPerformance() throws {
         var model = ComplexTestModel()
-        model.items = (0..<1000).map { "Item \($0)" }
+        model.items = (0..<1_000).map { "Item \($0)" }
 
         try benchmarkTester.assertBenchmark(
             "Large View Rendering (1000 items)",
@@ -105,7 +105,7 @@ struct MatchaPerformanceTests {
     @Test("Filtered view rendering performance")
     func filteredViewRenderingPerformance() throws {
         var model = ComplexTestModel()
-        model.items = (0..<1000).map { "Item \($0)" }
+        model.items = (0..<1_000).map { "Item \($0)" }
         model.filter = "5" // Will match items containing "5"
 
         try benchmarkTester.assertBenchmark(
@@ -338,7 +338,7 @@ struct MatchaPerformanceTests {
 
     @Test("Message channel throughput")
     func messageChannelThroughput() async throws {
-        let messageCount = 1000
+        let messageCount = 1_000
 
         try await benchmarkTester.assertBenchmark(
             "Message Channel Throughput (\(messageCount) messages)",
@@ -372,9 +372,9 @@ struct MatchaPerformanceTests {
 
         try benchmarkTester.assertMemoryUsage(
             "Large Model Memory",
-            maxMemory: 10 * 1024 * 1024 // 10 MB
+            maxMemory: 10 * 1_024 * 1_024 // 10 MB
         ) {
-            model.items = (0..<10000).map { "Item \($0) with some additional text" }
+            model.items = (0..<10_000).map { "Item \($0) with some additional text" }
             _ = model.view()
         }
     }
@@ -388,7 +388,7 @@ struct MatchaPerformanceTests {
 
         try await benchmarkTester.assertMemoryUsage(
             "Renderer Memory",
-            maxMemory: 5 * 1024 * 1024 // 5 MB
+            maxMemory: 5 * 1_024 * 1_024 // 5 MB
         ) {
             await renderer.write(largeContent)
         }
@@ -401,7 +401,7 @@ struct MatchaPerformanceTests {
     @Test("List navigation performance")
     func listNavigationPerformance() throws {
         var model = ListTestModel()
-        model.items = (0..<1000).map { ListTestModel.ListItem(id: "\($0)", title: "Item \($0)") }
+        model.items = (0..<1_000).map { ListTestModel.ListItem(id: "\($0)", title: "Item \($0)") }
 
         try benchmarkTester.assertBenchmark(
             "List Navigation (1000 items)",

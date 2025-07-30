@@ -38,7 +38,7 @@ public struct TableModel: Model {
             Person(name: "George Wilson", age: 45, city: "Boston", occupation: "Architect"),
             Person(name: "Helen Troy", age: 33, city: "Miami", occupation: "QA Engineer"),
             Person(name: "Ian Malcolm", age: 37, city: "Portland", occupation: "Researcher"),
-            Person(name: "Julia Roberts", age: 29, city: "Denver", occupation: "UX Designer"),
+            Person(name: "Julia Roberts", age: 29, city: "Denver", occupation: "UX Designer")
         ]
 
         // Define columns
@@ -46,7 +46,7 @@ public struct TableModel: Model {
             Table.Column(key: "name", title: "Name", width: 20),
             Table.Column(key: "age", title: "Age", width: 8),
             Table.Column(key: "city", title: "City", width: 15),
-            Table.Column(key: "occupation", title: "Occupation", width: 20),
+            Table.Column(key: "occupation", title: "Occupation", width: 20)
         ]
 
         // Create table
@@ -59,7 +59,7 @@ public struct TableModel: Model {
                 "name": person.name,
                 "age": String(person.age),
                 "city": person.city,
-                "occupation": person.occupation,
+                "occupation": person.occupation
             ]
         }
         table.setRows(rows)
@@ -120,7 +120,7 @@ public struct TableModel: Model {
                     "name": person.name,
                     "age": String(person.age),
                     "city": person.city,
-                    "occupation": person.occupation,
+                    "occupation": person.occupation
                 ]
             }
             model.table.setRows(rows)
@@ -134,7 +134,7 @@ public struct TableModel: Model {
                     "name": person.name,
                     "age": String(person.age),
                     "city": person.city,
-                    "occupation": person.occupation,
+                    "occupation": person.occupation
                 ]
             }
             model.table.setRows(rows)

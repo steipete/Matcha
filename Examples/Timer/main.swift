@@ -21,7 +21,7 @@ public struct TimerModel: Model {
     // Start with a timer command
     public func `init`() -> Command<Message>? {
         // Start the timer immediately
-        every(.seconds(1)) { Message.tick($0) }
+        Tick(.seconds(1)) { Message.tick($0) }
     }
 
     // Update the model based on messages
@@ -33,7 +33,7 @@ public struct TimerModel: Model {
             if model.isRunning {
                 model.seconds += 1
                 // Continue the timer
-                return (model, every(.seconds(1)) { Message.tick($0) })
+                return (model, Tick(.seconds(1)) { Message.tick($0) })
             } else {
                 return (model, nil)
             }
@@ -42,7 +42,7 @@ public struct TimerModel: Model {
             model.isRunning.toggle()
             if model.isRunning {
                 // Start timer
-                return (model, every(.seconds(1)) { Message.tick($0) })
+                return (model, Tick(.seconds(1)) { Message.tick($0) })
             } else {
                 // Stop timer
                 return (model, nil)

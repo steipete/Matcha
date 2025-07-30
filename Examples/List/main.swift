@@ -27,7 +27,7 @@ public struct ListModel: Model {
             List.Item(title: "Tacos", description: "Mexican street food", value: "tacos"),
             List.Item(title: "Fish & Chips", description: "British classic", value: "fish-chips"),
             List.Item(title: "Pad Thai", description: "Thai stir-fried noodles", value: "pad-thai"),
-            List.Item(title: "Curry", description: "Spicy Indian dish", value: "curry"),
+            List.Item(title: "Curry", description: "Spicy Indian dish", value: "curry")
         ]
 
         self.list = List()

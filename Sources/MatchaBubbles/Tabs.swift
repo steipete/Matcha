@@ -219,8 +219,7 @@ public struct Tabs: Sendable {
             // Check for number keys 1-9
             if let firstChar = key.runes.first,
                let number = Int(String(firstChar)),
-               number >= 1, number <= 9, number <= items.count
-            {
+               number >= 1, number <= 9, number <= items.count {
                 tabs.selectedIndex = number - 1
             }
 

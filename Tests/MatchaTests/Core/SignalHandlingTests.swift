@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import Matcha
 
@@ -276,6 +277,7 @@ struct SignalHandlingTests {
         let model = LongRunningModel()
         var options = ProgramOptions.default
         options.output = TestOutputStream()
+        options.input = Pipe().fileHandleForReading
 
         let program = Program(initialModel: model, options: options)
 

@@ -55,7 +55,7 @@ struct SplitPanesModel: Model {
         "split pane layouts in terminal UIs.",
         "",
         "Each pane can contain independent",
-        "content and maintain its own state.",
+        "content and maintain its own state."
     ]
 
     var rightContent: [String] = [
@@ -71,7 +71,7 @@ struct SplitPanesModel: Model {
         "For example:",
         "• File browser | Editor",
         "• Code | Terminal",
-        "• List | Details",
+        "• List | Details"
     ]
 
     func `init`() -> Command<Message>? {

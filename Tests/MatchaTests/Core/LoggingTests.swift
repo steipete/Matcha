@@ -120,7 +120,7 @@ struct LoggingTests {
             metadata: [
                 "userId": "12345",
                 "action": "login",
-                "timestamp": Date().timeIntervalSince1970,
+                "timestamp": Date().timeIntervalSince1970
             ]
         )
 

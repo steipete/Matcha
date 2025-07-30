@@ -124,7 +124,7 @@ public struct Stopwatch: Sendable {
     /// - Returns: A command that emits StopwatchTickMsg periodically
     public func tick<M: Message>() -> Command<M> {
         // Update every 100ms for smooth display
-        every(.milliseconds(100)) { _ in
+        Tick(.milliseconds(100)) { _ in
             StopwatchTickMsg() as! M
         }
     }
@@ -140,8 +140,8 @@ public struct Stopwatch: Sendable {
     /// - Returns: Formatted time string
     public func format() -> String {
         let totalSeconds = Int(elapsed)
-        let hours = totalSeconds / 3600
-        let minutes = (totalSeconds % 3600) / 60
+        let hours = totalSeconds / 3_600
+        let minutes = (totalSeconds % 3_600) / 60
         let seconds = totalSeconds % 60
         let milliseconds = Int((elapsed.truncatingRemainder(dividingBy: 1)) * 10)
 
@@ -194,10 +194,10 @@ public extension Stopwatch {
     /// - Returns: Tuple containing hours, minutes, seconds, and milliseconds
     var timeComponents: (hours: Int, minutes: Int, seconds: Int, milliseconds: Int) {
         let totalSeconds = Int(elapsed)
-        let hours = totalSeconds / 3600
-        let minutes = (totalSeconds % 3600) / 60
+        let hours = totalSeconds / 3_600
+        let minutes = (totalSeconds % 3_600) / 60
         let seconds = totalSeconds % 60
-        let milliseconds = Int((elapsed.truncatingRemainder(dividingBy: 1)) * 1000)
+        let milliseconds = Int((elapsed.truncatingRemainder(dividingBy: 1)) * 1_000)
         return (hours, minutes, seconds, milliseconds)
     }
 

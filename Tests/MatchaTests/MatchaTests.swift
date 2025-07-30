@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import Matcha
 @testable import MatchaBubbles
@@ -58,7 +59,10 @@ struct MatchaTests {
 
     @Test("Quit message handling")
     func quitMessage() async throws {
-        let program = Program(initialModel: TestModel())
+        var options = ProgramOptions.default
+        options.output = TestOutputStream()
+        options.input = Pipe().fileHandleForReading
+        let program = Program(initialModel: TestModel(), options: options)
 
         // Create a task to run the program
         let programTask = Task {

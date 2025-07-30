@@ -228,23 +228,15 @@ public struct TickMsg: Message {
     }
 }
 
-/// Creates a command that waits for the specified duration and then produces a message
-public func tick<M: Message>(_ duration: Duration, _ handler: @escaping @Sendable (Date) -> M) -> Command<M> {
+// Internal helper for creating simple timer commands
+internal func tick<M: Message>(_ duration: Duration, _ handler: @escaping @Sendable (Date) -> M) -> Command<M> {
     Command { () async -> M? in
         try? await Task.sleep(for: duration)
         return handler(Date())
     }
 }
 
-/// Creates a command that produces messages at regular intervals
-/// Note: This returns after producing ONE message. To continue receiving messages,
-/// the model should return this command again from its update function.
-public func every<M: Message>(_ duration: Duration, _ handler: @escaping @Sendable (Date) -> M) -> Command<M> {
-    Command { () async -> M? in
-        try? await Task.sleep(for: duration)
-        return handler(Date())
-    }
-}
+// Removed lowercase every() - use uppercase Every() for clock-aligned timing or Tick() for simple timing
 
 /// Every is a command that ticks in sync with the system clock. So, if you
 /// wanted to tick with the system clock every second, minute or hour you

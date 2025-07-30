@@ -19,7 +19,7 @@ struct FullScreenModel: Model {
     var ticks: Int = 0
 
     func `init`() -> Command<Message>? {
-        every(.seconds(1)) { _ in .tick }
+        Tick(.seconds(1)) { _ in .tick }
     }
 
     func update(_ message: Message) -> (FullScreenModel, Command<Message>?) {
@@ -33,7 +33,7 @@ struct FullScreenModel: Model {
 
         case .tick:
             model.ticks += 1
-            return (model, every(.seconds(1)) { _ in .tick })
+            return (model, Tick(.seconds(1)) { _ in .tick })
 
         case .quit:
             return (model, quit())

@@ -27,14 +27,14 @@ public struct HelpModel: Model {
             Help.Binding(key: "e", description: "Edit item"),
             Help.Binding(key: "s", description: "Save changes"),
             Help.Binding(key: "u", description: "Undo last action", disabled: true),
-            Help.Binding(keys: ["Ctrl+r"], description: "Redo action", disabled: true),
+            Help.Binding(keys: ["Ctrl+r"], description: "Redo action", disabled: true)
         ]
 
         // Create help with multiple groups
         let groups = [
             Help.Group(title: "Navigation", bindings: Help.navigationBindings),
             Help.Group(title: "File Operations", bindings: customBindings),
-            Help.Group(title: "Application", bindings: Help.appBindings),
+            Help.Group(title: "Application", bindings: Help.appBindings)
         ]
 
         self.help = Help(groups: groups)

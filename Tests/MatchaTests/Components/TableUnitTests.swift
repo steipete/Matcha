@@ -12,14 +12,14 @@ struct TableUnitTests {
         table.setColumns([
             Table.Column(key: "id", title: "ID", width: 5),
             Table.Column(key: "name", title: "Name", width: 20),
-            Table.Column(key: "age", title: "Age", width: 5),
+            Table.Column(key: "age", title: "Age", width: 5)
         ])
         table.setRows([
             ["id": "1", "name": "Alice", "age": "30"],
             ["id": "2", "name": "Bob", "age": "25"],
             ["id": "3", "name": "Charlie", "age": "35"],
             ["id": "4", "name": "Diana", "age": "28"],
-            ["id": "5", "name": "Eve", "age": "32"],
+            ["id": "5", "name": "Eve", "age": "32"]
         ])
         return table
     }
@@ -131,7 +131,7 @@ struct TableUnitTests {
         var table = Table()
         table.setColumns([
             Table.Column(key: "id", title: "ID", width: 5),
-            Table.Column(key: "name", title: "Name", width: 20),
+            Table.Column(key: "name", title: "Name", width: 20)
         ])
 
         #expect(table.rows.isEmpty)
@@ -152,7 +152,7 @@ struct TableUnitTests {
         let columns = [
             Table.Column(key: "id", title: "ID", width: 10),
             Table.Column(key: "name", title: "Name", width: 30),
-            Table.Column(key: "status", title: "Status", width: 15),
+            Table.Column(key: "status", title: "Status", width: 15)
         ]
 
         table.setColumns(columns)
@@ -169,13 +169,13 @@ struct TableUnitTests {
         var table = Table()
         table.setColumns([
             Table.Column(key: "id", title: "ID", width: 5),
-            Table.Column(key: "name", title: "Name", width: 20),
+            Table.Column(key: "name", title: "Name", width: 20)
         ])
 
         let rows = [
             ["id": "1", "name": "Alice"],
             ["id": "2", "name": "Bob", "extra": "ignored"], // Extra field ignored
-            ["id": "3", "name": "Charlie"],
+            ["id": "3", "name": "Charlie"]
         ]
 
         table.setRows(rows)
@@ -212,20 +212,18 @@ struct TableUnitTests {
     func respectsColumnWidth() {
         var table = Table()
         table.setColumns([
-            Table.Column(key: "name", title: "Name", width: 10),
+            Table.Column(key: "name", title: "Name", width: 10)
         ])
         table.setRows([
-            ["name": "This is a very long name that should be truncated"],
+            ["name": "This is a very long name that should be truncated"]
         ])
 
         let view = table.view()
         // The exact truncation depends on implementation, but it should respect width
         let lines = view.split(separator: "\n")
-        for line in lines {
-            if line.contains("This") {
-                // The content line should not exceed reasonable bounds
-                #expect(line.count < 50)
-            }
+        for line in lines where line.contains("This") {
+            // The content line should not exceed reasonable bounds
+            #expect(line.count < 50)
         }
     }
 

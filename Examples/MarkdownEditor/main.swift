@@ -278,7 +278,7 @@ extension MarkdownEditorModel {
 
         // Headers
         if line.starts(with: "#") {
-            let level = line.prefix(while: { $0 == "#" }).count
+            let level = line.prefix { $0 == "#" }.count
             let color = level == 1 ? "\u{1B}[1;35m" : "\u{1B}[1;36m" // Magenta/Cyan
             highlighted = color + line + "\u{1B}[0m"
         }
@@ -321,7 +321,7 @@ extension MarkdownEditorModel {
 
             // Headers
             if processedLine.starts(with: "#") {
-                let level = processedLine.prefix(while: { $0 == "#" }).count
+                let level = processedLine.prefix { $0 == "#" }.count
                 processedLine = String(processedLine.dropFirst(level)).trimmingCharacters(in: .whitespaces)
                 processedLine = "\u{1B}[1m" + processedLine + "\u{1B}[0m" // Bold
             }

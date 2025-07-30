@@ -102,7 +102,7 @@ struct TabsModel: Model {
             Part of the MatchaBubbles component library.
 
             Created with 🍵 and Swift
-            """,
+            """
         ]
     }
 

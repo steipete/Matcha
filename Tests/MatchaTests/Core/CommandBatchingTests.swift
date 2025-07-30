@@ -194,7 +194,7 @@ struct CommandBatchingTests {
         let interval = Duration.milliseconds(50)
         let tracker = ExecutionTracker()
 
-        let everyCmd = every(interval) { _ in
+        let everyCmd = Tick(interval) { _ in
             // Can't use async in sync closure
             TestMessage.tick
         }
@@ -206,8 +206,7 @@ struct CommandBatchingTests {
             let elapsed = ContinuousClock.now - start
 
             if let msg = result as? any Message,
-               let testMsg = msg as? TestMessage
-            {
+               let testMsg = msg as? TestMessage {
                 #expect(testMsg == .tick)
             }
             #expect(elapsed >= interval * 0.9) // Allow 10% tolerance

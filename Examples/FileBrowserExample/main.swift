@@ -138,7 +138,7 @@ struct FileBrowserModel: Model {
 
         // Status
         let entryCount = browser.entries.count
-        let dirCount = browser.entries.count(where: { $0.isDirectory })
+        let dirCount = browser.entries.count { $0.isDirectory }
         let fileCount = entryCount - dirCount
 
         view += Style().foreground(Color(240)).render("Items: ") +

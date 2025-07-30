@@ -341,7 +341,7 @@ private let keyNames: [KeyType: String] = [
     .mediaNext: "media next",
     .mediaPrev: "media previous",
     .mediaRewind: "media rewind",
-    .mediaFastForward: "media fast-forward",
+    .mediaFastForward: "media fast-forward"
 ]
 
 // MARK: - Pattern Matching Support

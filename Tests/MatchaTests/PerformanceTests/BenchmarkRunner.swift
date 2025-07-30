@@ -35,14 +35,14 @@ public class BenchmarkRunner {
             if time < 0.001 {
                 String(format: "%.2f µs", time * 1_000_000)
             } else if time < 1.0 {
-                String(format: "%.2f ms", time * 1000)
+                String(format: "%.2f ms", time * 1_000)
             } else {
                 String(format: "%.2f s", time)
             }
         }
 
         private func formatMemory(_ bytes: Int64) -> String {
-            let mb = Double(bytes) / 1024.0 / 1024.0
+            let mb = Double(bytes) / 1_024.0 / 1_024.0
             return String(format: "%.1f MB", mb)
         }
     }

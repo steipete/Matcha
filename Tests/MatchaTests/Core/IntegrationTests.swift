@@ -263,7 +263,7 @@ struct IntegrationTests {
                 // Mouse drag
                 ComplexModel.Message.mouse(MouseMsg(x: 25, y: 10, action: .motion, button: .left)),
                 ComplexModel.Message.mouse(MouseMsg(x: 30, y: 15, action: .motion, button: .left)),
-                ComplexModel.Message.mouse(MouseMsg(x: 30, y: 15, action: .release, button: .left)),
+                ComplexModel.Message.mouse(MouseMsg(x: 30, y: 15, action: .release, button: .left))
             ]
 
             for msg in sequence {

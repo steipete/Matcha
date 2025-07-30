@@ -229,7 +229,7 @@ struct KeyBindingModel: Model, KeyBindable {
 
         // Key binding status
         let totalBindings = keyMap.allBindings.count
-        let enabledBindings = keyMap.allBindings.count(where: { $0.enabled })
+        let enabledBindings = keyMap.allBindings.count { $0.enabled }
         view += Style().foreground(Color(240)).render("Active Bindings: ") +
             Style().bold().render("\(enabledBindings)/\(totalBindings)") + "\n\n"
 

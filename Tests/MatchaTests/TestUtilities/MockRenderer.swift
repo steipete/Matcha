@@ -177,7 +177,7 @@ public actor MockRenderer: Renderer {
 
     /// Gets the number of times a specific call was made
     public func callCount(containing substring: String) -> Int {
-        renderCalls.count(where: { $0.contains(substring) })
+        renderCalls.count { $0.contains(substring) }
     }
 
     /// Resets all captured calls

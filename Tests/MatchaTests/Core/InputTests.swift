@@ -78,7 +78,7 @@ struct KeyboardInputTests {
             (.end, "end"),
             (.pageUp, "pgup"),
             (.pageDown, "pgdown"),
-            (.insert, "insert"),
+            (.insert, "insert")
         ]
 
         for (keyType, expectedDesc) in keyTests {
@@ -141,7 +141,7 @@ struct MouseInputTests {
             .wheelUp,
             .wheelDown,
             .wheelLeft,
-            .wheelRight,
+            .wheelRight
         ]
 
         for button in buttons {

@@ -158,8 +158,8 @@ public struct StopwatchModel: Model {
 // Helper function to format time interval
 func formatTimeInterval(_ interval: TimeInterval) -> String {
     let totalSeconds = Int(interval)
-    let hours = totalSeconds / 3600
-    let minutes = (totalSeconds % 3600) / 60
+    let hours = totalSeconds / 3_600
+    let minutes = (totalSeconds % 3_600) / 60
     let seconds = totalSeconds % 60
     let milliseconds = Int((interval.truncatingRemainder(dividingBy: 1)) * 10)
 

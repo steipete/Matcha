@@ -55,7 +55,7 @@ struct BubbleteeComparisonTests {
         let bubbleteeBaseline = 0.0001 // 100 microseconds
 
         var model = ListModel()
-        model.items = (0..<1000).map { "Item \($0)" }
+        model.items = (0..<1_000).map { "Item \($0)" }
 
         benchmarkRunner.benchmark("Matcha List Model Update") {
             // Simulate list navigation
@@ -166,7 +166,7 @@ struct BubbleteeComparisonTests {
             [0x61], // 'a'
             [0x0D], // Enter
             [0x1B], // Escape
-            [0x09], // Tab
+            [0x09] // Tab
         ]
 
         benchmarkRunner.benchmark("Matcha Key Parsing") {
@@ -211,7 +211,7 @@ struct BubbleteeComparisonTests {
             // Wheel up
             [0x1B, 0x5B, 0x3C, 0x36, 0x34, 0x3B, 0x31, 0x30, 0x3B, 0x31, 0x30, 0x4D],
             // Wheel down
-            [0x1B, 0x5B, 0x3C, 0x36, 0x35, 0x3B, 0x31, 0x30, 0x3B, 0x31, 0x30, 0x4D],
+            [0x1B, 0x5B, 0x3C, 0x36, 0x35, 0x3B, 0x31, 0x30, 0x3B, 0x31, 0x30, 0x4D]
         ]
 
         benchmarkRunner.benchmark("Matcha Mouse Parsing") {
@@ -342,13 +342,13 @@ struct BubbleteeComparisonTests {
     @Test("Memory usage vs Bubbletea baseline")
     func memoryUsageComparison() throws {
         // Bubbletea typical memory usage for moderate app: ~5-10 MB
-        let bubbleteeMemoryBaseline: Int64 = 10 * 1024 * 1024 // 10 MB
+        let bubbleteeMemoryBaseline: Int64 = 10 * 1_024 * 1_024 // 10 MB
 
         var model = LargeAppModel()
 
         benchmarkRunner.benchmark("Matcha Memory Usage") {
             // Simulate app lifecycle
-            model.items = (0..<1000).map { "Item \($0)" }
+            model.items = (0..<1_000).map { "Item \($0)" }
             _ = model.view()
 
             let (newModel, _) = model.update(.refresh)
@@ -388,7 +388,7 @@ struct BubbleteeComparisonTests {
                 .mouse(MouseMsg(x: 50, y: 10, action: .press, button: .left)),
                 .windowSize(WindowSizeMsg(width: 100, height: 40)),
                 .input("Hello"),
-                .refresh,
+                .refresh
             ]
 
             for msg in messages {
@@ -501,9 +501,11 @@ private struct ListModel: Model {
     }
 
     func view() -> String {
-        items.enumerated().map { idx, item in
-            idx == cursor ? "> \(item)" : "  \(item)"
-        }.joined(separator: "\n")
+        items.enumerated()
+            .map { idx, item in
+                idx == cursor ? "> \(item)" : "  \(item)"
+            }
+            .joined(separator: "\n")
     }
 }
 
@@ -586,10 +588,12 @@ private struct ColoredListModel: Model {
     }
 
     func view() -> String {
-        items.map { item in
-            let prefix = item.selected ? "▶ " : "  "
-            return "\(item.color.rawValue)\(prefix)\(item.title)\(ANSIColor.reset.rawValue)"
-        }.joined(separator: "\n")
+        items
+            .map { item in
+                let prefix = item.selected ? "▶ " : "  "
+                return "\(item.color.rawValue)\(prefix)\(item.title)\(ANSIColor.reset.rawValue)"
+            }
+            .joined(separator: "\n")
     }
 }
 

@@ -166,7 +166,7 @@ struct ListUnitTests {
     func customStringItems() {
         let list = List().withStringItems([
             "Task 1: First task",
-            "Task 2: Second task",
+            "Task 2: Second task"
         ])
 
         #expect(list.items.count == 2)

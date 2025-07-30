@@ -112,7 +112,7 @@ struct AdvancedRendererTests {
         await renderer.start()
 
         // Generate large content
-        let lines = (1...1000).map { "Line \($0): " + String(repeating: "X", count: 200) }
+        let lines = (1...1_000).map { "Line \($0): " + String(repeating: "X", count: 200) }
         let largeContent = lines.joined(separator: "\n")
 
         // Measure rendering time
@@ -313,7 +313,7 @@ struct AdvancedRendererTests {
         await renderer.setWindowTitle("")
 
         // Very long title
-        let longTitle = String(repeating: "X", count: 1000)
+        let longTitle = String(repeating: "X", count: 1_000)
         await renderer.setWindowTitle(longTitle)
 
         // Title with special characters

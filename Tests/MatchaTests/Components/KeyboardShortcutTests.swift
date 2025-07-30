@@ -248,14 +248,14 @@ struct KeyboardShortcutTests {
         var table = Table()
         table.setColumns([
             Table.Column(key: "col1", title: "Col1", width: 10),
-            Table.Column(key: "col2", title: "Col2", width: 10),
+            Table.Column(key: "col2", title: "Col2", width: 10)
         ])
         table.setRows([
             ["col1": "A1", "col2": "B1"],
             ["col1": "A2", "col2": "B2"],
             ["col1": "A3", "col2": "B3"],
             ["col1": "A4", "col2": "B4"],
-            ["col1": "A5", "col2": "B5"],
+            ["col1": "A5", "col2": "B5"]
         ])
         table.setHeight(3)
 
@@ -425,7 +425,7 @@ struct KeyboardShortcutTests {
             ("Enter", "Select"),
             ("q", "Quit"),
             ("Tab", "Next field"),
-            ("Shift+Tab", "Previous field"),
+            ("Shift+Tab", "Previous field")
         ])
 
         // Help is a display-only component that doesn't handle input

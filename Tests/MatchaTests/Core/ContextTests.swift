@@ -168,7 +168,10 @@ struct ContextTests {
     func finishedHandler() async throws {
         let finishedCalled = ManagedCriticalState(false)
 
-        let program = Program(initialModel: ContextModel())
+        var options = ProgramOptions.default
+        options.output = TestOutputStream()
+        options.input = Pipe().fileHandleForReading
+        let program = Program(initialModel: ContextModel(), options: options)
 
         // Set finished handler
         program.onFinished {

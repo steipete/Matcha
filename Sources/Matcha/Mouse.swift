@@ -159,7 +159,7 @@ public enum MouseAction: Int, Sendable {
 private let mouseActions: [MouseAction: String] = [
     .press: "press",
     .release: "release",
-    .motion: "motion",
+    .motion: "motion"
 ]
 
 /// MouseButton represents the button that was pressed during a mouse event.
@@ -223,7 +223,7 @@ private let mouseButtons: [MouseButton: String] = [
     .backward: "backward",
     .forward: "forward",
     .button10: "button 10",
-    .button11: "button 11",
+    .button11: "button 11"
 ]
 
 /// MouseEventType represents the type of mouse event (deprecated).

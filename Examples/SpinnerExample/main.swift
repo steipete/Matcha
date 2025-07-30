@@ -39,7 +39,7 @@ public struct SpinnerModel: Model {
 
         // Start spinner animation and schedule load completion
         let tickCmd: Command<Message> = initialModel.spinners[0].tick()
-        let completeCmd: Command<Message> = Matcha.tick(.seconds(5)) { _ in Message.loadComplete }
+        let completeCmd: Command<Message> = Tick(.seconds(5)) { _ in Message.loadComplete }
         return Matcha.batch([tickCmd, completeCmd])
     }
 

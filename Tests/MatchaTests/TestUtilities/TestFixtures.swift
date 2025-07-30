@@ -40,7 +40,7 @@ public struct TestModel: Model {
 
         case .start:
             model.isRunning = true
-            return (model, every(.seconds(1)) { _ in .tick })
+            return (model, Tick(.seconds(1)) { _ in .tick })
 
         case .stop:
             model.isRunning = false
@@ -48,7 +48,7 @@ public struct TestModel: Model {
 
         case .tick:
             model.value += 1
-            return (model, model.isRunning ? every(.seconds(1)) { _ in .tick } : nil)
+            return (model, model.isRunning ? Tick(.seconds(1)) { _ in .tick } : nil)
 
         case .quit:
             return (model, quit())
@@ -206,7 +206,7 @@ public func sampleKeyBindings() -> [(String, String)] {
         ("j", "Move down"),
         ("k", "Move up"),
         ("enter", "Select"),
-        ("esc", "Cancel"),
+        ("esc", "Cancel")
     ]
 }
 
@@ -216,7 +216,7 @@ public func sampleTableData() -> [[String: String]] {
         ["name": "Alice", "age": "30", "city": "New York"],
         ["name": "Bob", "age": "25", "city": "San Francisco"],
         ["name": "Charlie", "age": "35", "city": "Chicago"],
-        ["name": "Diana", "age": "28", "city": "Boston"],
+        ["name": "Diana", "age": "28", "city": "Boston"]
     ]
 }
 

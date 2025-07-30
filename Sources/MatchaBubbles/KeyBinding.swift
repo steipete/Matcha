@@ -223,7 +223,7 @@ public extension KeyBinding {
         KeyBinding(keys: ["pgup", "ctrl+u"], help: "Page up"),
         KeyBinding(keys: ["pgdown", "ctrl+d"], help: "Page down"),
         KeyBinding(keys: ["home", "g"], help: "Go to start"),
-        KeyBinding(keys: ["end", "G"], help: "Go to end"),
+        KeyBinding(keys: ["end", "G"], help: "Go to end")
     ]
 
     /// Common action bindings
@@ -232,7 +232,7 @@ public extension KeyBinding {
         KeyBinding(keys: ["esc"], help: "Cancel/Back"),
         KeyBinding(keys: ["tab"], help: "Next field"),
         KeyBinding(keys: ["shift+tab"], help: "Previous field"),
-        KeyBinding(keys: ["ctrl+c", "q"], help: "Quit"),
+        KeyBinding(keys: ["ctrl+c", "q"], help: "Quit")
     ]
 
     /// Editing bindings
@@ -242,7 +242,7 @@ public extension KeyBinding {
         KeyBinding(keys: ["ctrl+c"], help: "Copy"),
         KeyBinding(keys: ["ctrl+v"], help: "Paste"),
         KeyBinding(keys: ["ctrl+z"], help: "Undo"),
-        KeyBinding(keys: ["ctrl+shift+z", "ctrl+y"], help: "Redo"),
+        KeyBinding(keys: ["ctrl+shift+z", "ctrl+y"], help: "Redo")
     ]
 }
 

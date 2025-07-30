@@ -210,8 +210,12 @@ struct OptionsTests {
 
     @Test("Program sends and receives messages")
     func programMessaging() async throws {
+        var options = ProgramOptions.default
+        options.output = TestOutputStream()
+        options.input = Pipe().fileHandleForReading
         let program = Program(
-            initialModel: TestModel()
+            initialModel: TestModel(),
+            options: options
         )
 
         // Start the program in background
@@ -234,8 +238,12 @@ struct OptionsTests {
 
     @Test("Program can be killed forcefully")
     func programKill() async throws {
+        var options = ProgramOptions.default
+        options.output = TestOutputStream()
+        options.input = Pipe().fileHandleForReading
         let program = Program(
-            initialModel: TestModel()
+            initialModel: TestModel(),
+            options: options
         )
 
         // Start the program in background

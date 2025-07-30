@@ -61,6 +61,10 @@ struct ModelTests {
             try await tester.expectView(containing: "Apple")
             try await tester.expectView(containing: "Banana")
 
+            // Clear output before final check
+            tester.clearOutput()
+            try await Task.sleep(for: .milliseconds(50))
+            
             // Cherry and Date should not appear when filtered
             let view = tester.getCurrentView()
             #expect(!view.contains("Cherry"))
@@ -78,13 +82,20 @@ struct ModelTests {
             try await Task.sleep(for: .milliseconds(50))
             let view1 = tester.getCurrentView()
             #expect(view1.contains("Running: true"))
+            
+            // Clear output for next check
+            tester.clearOutput()
 
             // Wait for a tick
             try await Task.sleep(for: .seconds(1.1))
 
             // Value should have incremented from timer
             let view2 = tester.getCurrentView()
-            #expect(!view2.contains("Value: 0")) // Should be > 0
+            #expect(view2.contains("Value: 1")) // Should show incremented value
+            #expect(view2.contains("Running: true"))
+
+            // Clear output for next check
+            tester.clearOutput()
 
             // Stop the timer
             await tester.send(.stop)
@@ -105,6 +116,9 @@ struct ModelTests {
 
             try await tester.expectView(containing: "Error: Invalid index")
 
+            // Clear output before checking error is gone
+            tester.clearOutput()
+            
             // Clear error
             await tester.send(.clearError)
             try await Task.sleep(for: .milliseconds(50))

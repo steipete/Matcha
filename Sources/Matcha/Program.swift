@@ -311,6 +311,11 @@ public final class Program<M: Model> {
 
     /// Queue for messages sent before run() is called
     private var earlyMessageQueue: [any Message] = []
+    
+    /// Active command tasks
+    /// Note: Like Bubbletea, we don't wait on these during shutdown to avoid latency.
+    /// Commands can run for a long time and Swift Tasks can't be forcefully cancelled.
+    private var commandTasks: Set<Task<Void, Never>> = []
 
     // MARK: - Initialization
 
@@ -393,7 +398,7 @@ public final class Program<M: Model> {
                     // Internal cancellation only
                     throw ErrProgramKilled()
                 }
-            } else if let _ = error as? ErrInterrupted {
+            } else if error is ErrInterrupted {
                 // Pass through interrupt errors
                 throw error
             } else if error is ErrProgramPanic {
@@ -565,10 +570,7 @@ public final class Program<M: Model> {
 
         // Format the output
         let formattedString = String(format: format, arguments: args.map { arg in
-            if let intArg = arg as? Int { String(intArg) as CVarArg }
-            else if let doubleArg = arg as? Double { doubleArg as CVarArg }
-            else if let stringArg = arg as? String { stringArg as CVarArg }
-            else { String(describing: arg) as CVarArg }
+            if let intArg = arg as? Int { String(intArg) as CVarArg } else if let doubleArg = arg as? Double { doubleArg as CVarArg } else if let stringArg = arg as? String { stringArg as CVarArg } else { String(describing: arg) as CVarArg }
         })
 
         // Write directly to output
@@ -722,8 +724,14 @@ public final class Program<M: Model> {
 
         // Execute the model's init command
         if let initCommand = model.`init`() {
-            Task {
+            let task = Task {
                 await executeCommand(initCommand)
+            }
+            commandTasks.insert(task)
+            // Clean up when done
+            Task {
+                _ = await task.value
+                commandTasks.remove(task)
             }
         }
 
@@ -768,6 +776,40 @@ public final class Program<M: Model> {
 
         // Cancel context if needed
         contextTask?.cancel()
+        
+        // Give command tasks a brief grace period to complete
+        // Like Bubbletea, we don't wait forever as commands can run for a long time
+        if !commandTasks.isEmpty {
+            // Create a timeout task
+            let timeoutTask = Task {
+                try? await Task.sleep(for: .milliseconds(100))
+            }
+            
+            // Wait for either timeout or all tasks to complete
+            await withTaskGroup(of: Void.self) { group in
+                // Add the timeout task
+                group.addTask {
+                    await timeoutTask.value
+                }
+                
+                // Add all command tasks
+                for task in commandTasks {
+                    group.addTask {
+                        _ = await task.value
+                    }
+                }
+                
+                // Wait for timeout (first task to complete)
+                _ = await group.next()
+                
+                // Cancel remaining tasks
+                group.cancelAll()
+            }
+            
+            // Clear the task set - any remaining tasks will complete on their own
+            // This matches Bubbletea's behavior of "leaking" goroutines
+            commandTasks.removeAll()
+        }
 
         // Call finished handler if set
         if let handler = finishedHandler {
@@ -811,8 +853,14 @@ public final class Program<M: Model> {
 
                 // Execute any resulting command
                 if let command {
-                    Task {
+                    let task = Task {
                         await executeCommand(command)
+                    }
+                    commandTasks.insert(task)
+                    // Clean up when done
+                    Task {
+                        _ = await task.value
+                        commandTasks.remove(task)
                     }
                 }
 
@@ -931,7 +979,8 @@ public final class Program<M: Model> {
             // Execute all batched commands concurrently
             await withTaskGroup(of: Void.self) { group in
                 for command in msg.commands {
-                    group.addTask {
+                    group.addTask { [weak self] in
+                        guard let self else { return }
                         await self.executeCommandWithRecovery(command)
                     }
                 }
@@ -996,7 +1045,13 @@ public final class Program<M: Model> {
 
     private func render() async {
         let view = model.view()
-        await renderer?.write(view)
+        if let renderer = renderer {
+            await renderer.write(view)
+        } else if options.disableRenderer {
+            // When renderer is disabled, write view directly to output for testing
+            var output = options.output
+            output.write(view)
+        }
     }
 
     private func shutdown() async {
@@ -1040,7 +1095,8 @@ public final class Program<M: Model> {
                             // Recursively flatten nested batches
                             addCommandsToGroup(cmd.batchCommands)
                         } else {
-                            group.addTask {
+                            group.addTask { [weak self] in
+                                guard let self else { return }
                                 await self.executeCommandWithRecovery(cmd)
                             }
                         }
@@ -1081,7 +1137,8 @@ public final class Program<M: Model> {
             // Execute all commands concurrently
             await withTaskGroup(of: Void.self) { group in
                 for cmd in command.batchCommands {
-                    group.addTask {
+                    group.addTask { [weak self] in
+                        guard let self else { return }
                         await self.executeCommandWithRecovery(cmd)
                     }
                 }

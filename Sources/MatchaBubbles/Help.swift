@@ -250,7 +250,7 @@ public extension Help {
         Binding(keys: ["PgUp", "b"], description: "Page up"),
         Binding(keys: ["PgDn", "f"], description: "Page down"),
         Binding(keys: ["Home", "g"], description: "Go to start"),
-        Binding(keys: ["End", "G"], description: "Go to end"),
+        Binding(keys: ["End", "G"], description: "Go to end")
     ]
 
     /// Predefined set of common action keybindings.
@@ -260,7 +260,7 @@ public extension Help {
         Binding(key: "Space", description: "Toggle/Select"),
         Binding(key: "Tab", description: "Next field"),
         Binding(keys: ["Shift+Tab"], description: "Previous field"),
-        Binding(key: "Esc", description: "Cancel/Back"),
+        Binding(key: "Esc", description: "Cancel/Back")
     ]
 
     /// Predefined set of common application keybindings.
@@ -269,7 +269,7 @@ public extension Help {
         Binding(keys: ["q", "Ctrl+c"], description: "Quit"),
         Binding(key: "?", description: "Toggle help"),
         Binding(key: "r", description: "Refresh"),
-        Binding(keys: ["Ctrl+l"], description: "Clear screen"),
+        Binding(keys: ["Ctrl+l"], description: "Clear screen")
     ]
 
     /// Creates a help component with standard keybinding groups.

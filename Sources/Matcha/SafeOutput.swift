@@ -30,7 +30,7 @@ public final class BufferedOutput: TextOutputStream, @unchecked Sendable {
     private let flushThreshold: Int
     private var flushWorkItem: DispatchWorkItem?
 
-    public init(underlying: any TextOutputStream & Sendable, flushThreshold: Int = 4096) {
+    public init(underlying: any TextOutputStream & Sendable, flushThreshold: Int = 4_096) {
         self.underlying = underlying
         self.flushThreshold = flushThreshold
     }

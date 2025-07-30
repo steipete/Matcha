@@ -41,10 +41,9 @@ struct RealTimeModel: Model {
         return p
     }()
 
-    init() {}
 
     func `init`() -> Command<Message>? {
-        every(.milliseconds(100)) { _ in .tick }
+        Tick(.milliseconds(100)) { _ in .tick }
     }
 
     func update(_ message: Message) -> (RealTimeModel, Command<Message>?) {
@@ -87,7 +86,7 @@ struct RealTimeModel: Model {
                         "Connection established to database",
                         "Scheduled task completed",
                         "Memory threshold reached",
-                        "Request timeout detected",
+                        "Request timeout detected"
                     ]
 
                     let logType = logTypes.randomElement()!
@@ -101,17 +100,17 @@ struct RealTimeModel: Model {
                     return (model, .batch(
                         .pure(.updateMetrics(newMetrics)),
                         .pure(.updateLogs("[\(timestamp)] \(logType): \(logMsg)")),
-                        every(.milliseconds(100)) { _ in .tick }
+                        Tick(.milliseconds(100)) { _ in .tick }
                     ))
                 }
 
                 return (model, .batch(
                     .pure(.updateMetrics(newMetrics)),
-                    every(.milliseconds(100)) { _ in .tick }
+                    Tick(.milliseconds(100)) { _ in .tick }
                 ))
             } else {
                 // When paused, still schedule next tick
-                return (model, every(.milliseconds(100)) { _ in .tick })
+                return (model, Tick(.milliseconds(100)) { _ in .tick })
             }
 
         case let .updateMetrics(metrics):

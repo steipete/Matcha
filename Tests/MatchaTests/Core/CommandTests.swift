@@ -95,9 +95,9 @@ struct CommandTests {
 
     @Test("Every command executes repeatedly")
     func everyCommand() async throws {
-        // Since every() returns a Command that produces one message,
+        // Since Tick() returns a Command that produces one message,
         // we'll execute it multiple times to test the pattern
-        let everyCmd = every(.milliseconds(50)) { _ in
+        let everyCmd = Tick(.milliseconds(50)) { _ in
             TestMessage.tick
         }
 

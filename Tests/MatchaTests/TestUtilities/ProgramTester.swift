@@ -25,6 +25,7 @@ public class ProgramTester<M: Model> {
         testOptions.input = inputPipe.fileHandleForReading
         testOptions.fps = 120 // High FPS for faster testing
         testOptions.disableSignals = true // Disable signal handling in tests
+        testOptions.disableRenderer = true // Disable renderer for tests
 
         self.outputCapture = outputCapture
         self.program = Program(initialModel: model, options: testOptions)
