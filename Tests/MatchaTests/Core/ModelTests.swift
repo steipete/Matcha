@@ -9,6 +9,7 @@ import Testing
 @testable import Matcha
 
 @Suite("Model Tests")
+@MainActor
 struct ModelTests {
     
     @Test("Basic model update operations")
@@ -134,7 +135,7 @@ struct ModelProtocolTests {
         let model = ConcreteModel()
         let (newModel, cmd) = model.update(.increment)
         
-        #expect(newModel != nil)
+        // newModel is valid
         #expect(cmd == nil)
     }
     

@@ -5,56 +5,62 @@
 //  Tests for keyboard and mouse input handling.
 //
 
-import XCTest
+import Testing
 @testable import Matcha
 
-final class KeyboardInputTests: XCTestCase {
+@Suite("Keyboard Input Tests")
+struct KeyboardInputTests {
     
-    func testKeyCreation() {
+    @Test("Key creation with different types")
+    func keyCreation() {
         // Test character keys
-        let charKey = Key(description: "a")
-        XCTAssertEqual(charKey.description, "a")
+        let charKey = KeyMsg(character: "a")
+        #expect(charKey.description == "a")
         
         // Test special keys
-        let enterKey = Key(description: "enter")
-        XCTAssertEqual(enterKey.description, "enter")
+        let enterKey = KeyMsg(type: .enter)
+        #expect(enterKey.description == "enter")
         
-        let escKey = Key(description: "esc")
-        XCTAssertEqual(escKey.description, "esc")
+        let escKey = KeyMsg(type: .escape)
+        #expect(escKey.description == "esc")
         
         // Test arrow keys
-        let upKey = Key(description: "up")
-        XCTAssertEqual(upKey.description, "up")
+        let upKey = KeyMsg(type: .up)
+        #expect(upKey.description == "up")
     }
     
-    func testKeyEquality() {
-        let key1 = Key(description: "a")
-        let key2 = Key(description: "a")
-        let key3 = Key(description: "b")
+    @Test("Key equality comparison")
+    func keyEquality() {
+        let key1 = KeyMsg(character: "a")
+        let key2 = KeyMsg(character: "a")
+        let key3 = KeyMsg(character: "b")
         
-        XCTAssertEqual(key1, key2)
-        XCTAssertNotEqual(key1, key3)
+        #expect(key1 == key2)
+        #expect(key1 != key3)
     }
     
-    func testKeyModifiers() {
-        // Test control combinations
-        let ctrlC = Key(description: "ctrl+c")
-        XCTAssertEqual(ctrlC.description, "ctrl+c")
+    @Test("Key modifiers")
+    func keyModifiers() {
+        // Test alt modifier
+        let altA = KeyMsg(character: "a", alt: true)
+        #expect(altA.description == "alt+a")
         
-        let ctrlA = Key(description: "ctrl+a")
-        XCTAssertEqual(ctrlA.description, "ctrl+a")
+        let altQ = KeyMsg(character: "q", alt: true)
+        #expect(altQ.description == "alt+q")
     }
     
-    func testFunctionKeys() {
-        let f1 = Key(description: "f1")
-        let f12 = Key(description: "f12")
+    @Test("Function keys")
+    func functionKeys() {
+        let f1 = KeyMsg(type: .f1)
+        let f12 = KeyMsg(type: .f12)
         
-        XCTAssertEqual(f1.description, "f1")
-        XCTAssertEqual(f12.description, "f12")
+        #expect(f1.description == "f1")
+        #expect(f12.description == "f12")
     }
     
-    func testKeyPatternMatching() {
-        let key = Key(description: "q")
+    @Test("Key pattern matching")
+    func keyPatternMatching() {
+        let key = KeyMsg(character: "q")
         
         // Test pattern matching with switch
         var matched = false
@@ -65,68 +71,73 @@ final class KeyboardInputTests: XCTestCase {
             break
         }
         
-        XCTAssertTrue(matched)
+        #expect(matched)
     }
     
-    func testSpecialKeys() {
-        let keys = [
-            "backspace",
-            "delete",
-            "tab",
-            "home",
-            "end",
-            "pgup",
-            "pgdown",
-            "insert"
+    @Test("Special keys descriptions")
+    func specialKeys() {
+        let keyTests: [(KeyType, String)] = [
+            (.backspace, "backspace"),
+            (.delete, "delete"),
+            (.tab, "tab"),
+            (.home, "home"),
+            (.end, "end"),
+            (.pageUp, "pgup"),
+            (.pageDown, "pgdown"),
+            (.insert, "insert")
         ]
         
-        for keyName in keys {
-            let key = Key(description: keyName)
-            XCTAssertEqual(key.description, keyName)
+        for (keyType, expectedDesc) in keyTests {
+            let key = KeyMsg(type: keyType)
+            #expect(key.description == expectedDesc)
         }
     }
 }
 
-final class MouseInputTests: XCTestCase {
+@Suite("Mouse Input Tests")
+struct MouseInputTests {
     
-    func testMouseEventCreation() {
+    @Test("Mouse event creation with properties")
+    func mouseEventCreation() {
         let event = MouseEvent(
             x: 10,
             y: 20,
-            action: .press,
-            button: .left,
             shift: false,
             alt: false,
-            ctrl: false
+            ctrl: false,
+            action: .press,
+            button: .left
         )
         
-        XCTAssertEqual(event.x, 10)
-        XCTAssertEqual(event.y, 20)
-        XCTAssertEqual(event.action, .press)
-        XCTAssertEqual(event.button, .left)
-        XCTAssertFalse(event.shift)
-        XCTAssertFalse(event.alt)
-        XCTAssertFalse(event.ctrl)
+        #expect(event.x == 10)
+        #expect(event.y == 20)
+        #expect(event.action == .press)
+        #expect(event.button == .left)
+        #expect(!event.shift)
+        #expect(!event.alt)
+        #expect(!event.ctrl)
     }
     
-    func testMouseActions() {
+    @Test("Mouse action types")
+    func mouseActions() {
         let actions: [MouseAction] = [.press, .release, .motion]
         
         for action in actions {
             let event = MouseEvent(
                 x: 0,
                 y: 0,
-                action: action,
-                button: .left,
                 shift: false,
                 alt: false,
-                ctrl: false
+                ctrl: false,
+                action: action,
+                button: .left
             )
-            XCTAssertEqual(event.action, action)
+            #expect(event.action == action)
         }
     }
     
-    func testMouseButtons() {
+    @Test("Mouse button types")
+    func mouseButtons() {
         let buttons: [MouseButton] = [
             .none,
             .left,
@@ -142,105 +153,108 @@ final class MouseInputTests: XCTestCase {
             let event = MouseEvent(
                 x: 0,
                 y: 0,
-                action: .press,
-                button: button,
                 shift: false,
                 alt: false,
-                ctrl: false
+                ctrl: false,
+                action: .press,
+                button: button
             )
-            XCTAssertEqual(event.button, button)
+            #expect(event.button == button)
         }
     }
     
-    func testMouseModifiers() {
+    @Test("Mouse modifiers")
+    func mouseModifiers() {
         let event = MouseEvent(
             x: 5,
             y: 10,
-            action: .press,
-            button: .left,
             shift: true,
             alt: true,
-            ctrl: true
+            ctrl: true,
+            action: .press,
+            button: .left
         )
         
-        XCTAssertTrue(event.shift)
-        XCTAssertTrue(event.alt)
-        XCTAssertTrue(event.ctrl)
+        #expect(event.shift)
+        #expect(event.alt)
+        #expect(event.ctrl)
     }
     
-    func testMouseWheel() {
+    @Test("Mouse wheel events")
+    func mouseWheel() {
         let wheelUp = MouseEvent(
             x: 50,
             y: 50,
-            action: .motion,
-            button: .wheelUp,
             shift: false,
             alt: false,
-            ctrl: false
+            ctrl: false,
+            action: .motion,
+            button: .wheelUp
         )
         
-        XCTAssertEqual(wheelUp.button, .wheelUp)
-        XCTAssertEqual(wheelUp.action, .motion)
+        #expect(wheelUp.button == .wheelUp)
+        #expect(wheelUp.action == .motion)
     }
     
-    func testMouseEventEquality() {
+    @Test("Mouse event equality")
+    func mouseEventEquality() {
         let event1 = MouseEvent(
             x: 10,
             y: 20,
-            action: .press,
-            button: .left,
             shift: false,
             alt: false,
-            ctrl: false
+            ctrl: false,
+            action: .press,
+            button: .left
         )
         
         let event2 = MouseEvent(
             x: 10,
             y: 20,
-            action: .press,
-            button: .left,
             shift: false,
             alt: false,
-            ctrl: false
+            ctrl: false,
+            action: .press,
+            button: .left
         )
         
         let event3 = MouseEvent(
             x: 15,
             y: 20,
-            action: .press,
-            button: .left,
             shift: false,
             alt: false,
-            ctrl: false
+            ctrl: false,
+            action: .press,
+            button: .left
         )
         
-        XCTAssertEqual(event1, event2)
-        XCTAssertNotEqual(event1, event3)
+        #expect(event1 == event2)
+        #expect(event1 != event3)
     }
 }
 
 // MARK: - Input Integration Tests
 
-final class InputIntegrationTests: XCTestCase {
+@Suite("Input Integration Tests")
+@MainActor
+struct InputIntegrationTests {
     
-    func testKeyboardInputInProgram() async throws {
+    @Test("Keyboard input in program")
+    func keyboardInputInProgram() async throws {
         struct KeyTestModel: Model {
-            typealias Msg = Message
+            typealias Msg = KeyMsg
             
             var lastKey: String = ""
             
-            enum Message: Matcha.Message {
-                case keyPressed(String)
-            }
-            
             init() {}
             
-            func update(_ message: Message) -> (KeyTestModel, Command<Message>?) {
+            func `init`() -> Command<KeyMsg>? {
+                return nil
+            }
+            
+            func update(_ message: KeyMsg) -> (KeyTestModel, Command<KeyMsg>?) {
                 var model = self
-                switch message {
-                case .keyPressed(let key):
-                    model.lastKey = key
-                }
+                model.lastKey = message.description
                 return (model, nil)
             }
             
@@ -249,42 +263,34 @@ final class InputIntegrationTests: XCTestCase {
             }
         }
         
-        var options = ProgramOptions.default
-        options.onMessage = { msg in
-            if let keyMsg = msg as? KeyMsg {
-                return KeyTestModel.Message.keyPressed(keyMsg.description)
-            }
-            return nil
-        }
-        
-        let tester = ProgramTester(model: KeyTestModel(), options: options)
+        let tester = ProgramTester(model: KeyTestModel())
         
         try await tester.test {
-            await tester.sendKey("a")
+            await tester.send(KeyMsg(character: "a"))
             try await tester.expectView(containing: "Last key: a")
             
-            await tester.sendKey("enter")
+            await tester.send(KeyMsg(type: .enter))
             try await tester.expectView(containing: "Last key: enter")
         }
     }
     
-    func testMouseInputInProgram() async throws {
+    @Test("Mouse input in program")
+    func mouseInputInProgram() async throws {
         struct MouseTestModel: Model {
-            typealias Msg = Message
+            typealias Msg = MouseMsg
             
             var lastClick: (x: Int, y: Int) = (0, 0)
             
-            enum Message: Matcha.Message {
-                case mouseClick(x: Int, y: Int)
-            }
-            
             init() {}
             
-            func update(_ message: Message) -> (MouseTestModel, Command<Message>?) {
+            func `init`() -> Command<MouseMsg>? {
+                return nil
+            }
+            
+            func update(_ message: MouseMsg) -> (MouseTestModel, Command<MouseMsg>?) {
                 var model = self
-                switch message {
-                case .mouseClick(let x, let y):
-                    model.lastClick = (x, y)
+                if message.action == .press {
+                    model.lastClick = (message.x, message.y)
                 }
                 return (model, nil)
             }
@@ -296,14 +302,6 @@ final class InputIntegrationTests: XCTestCase {
         
         var options = ProgramOptions.default
         options.mouseMode = .cellMotion
-        options.onMessage = { msg in
-            if let mouseMsg = msg as? MouseMsg {
-                if mouseMsg.action == .press {
-                    return MouseTestModel.Message.mouseClick(x: mouseMsg.x, y: mouseMsg.y)
-                }
-            }
-            return nil
-        }
         
         let tester = ProgramTester(model: MouseTestModel(), options: options)
         

@@ -25,6 +25,10 @@ public struct TestModel: Model {
         self.text = text
     }
     
+    public func `init`() -> Command<TestMessage>? {
+        return nil
+    }
+    
     public func update(_ message: TestMessage) -> (TestModel, Command<TestMessage>?) {
         var model = self
         
@@ -67,7 +71,7 @@ public struct TestModel: Model {
     }
 }
 
-public enum TestMessage: Message {
+public enum TestMessage: Message, Equatable {
     case increment
     case decrement
     case setText(String)
@@ -90,6 +94,10 @@ public struct ComplexTestModel: Model {
     public var isLoading: Bool = false
     
     public init() {}
+    
+    public func `init`() -> Command<ComplexMessage>? {
+        return nil
+    }
     
     public func update(_ message: ComplexMessage) -> (ComplexTestModel, Command<ComplexMessage>?) {
         var model = self
@@ -181,7 +189,7 @@ public struct ComplexTestModel: Model {
     }
 }
 
-public enum ComplexMessage: Message {
+public enum ComplexMessage: Message, Equatable {
     case addItem(String)
     case removeItem(Int)
     case selectItem(Int)

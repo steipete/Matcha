@@ -6,13 +6,14 @@
 //
 
 import Foundation
-import XCTest
+import Testing
 @testable import Matcha
 
 /// A test harness for running and testing Matcha programs
+@MainActor
 public class ProgramTester<M: Model> {
     private let program: Program<M>
-    private var capturedOutput: String = ""
+    private let outputCapture: OutputCapture
     private var messages: [M.Msg] = []
     private var expectationQueue: [() async throws -> Void] = []
     
@@ -21,29 +22,45 @@ public class ProgramTester<M: Model> {
         // Create custom output stream to capture rendering
         let outputCapture = OutputCapture()
         
+        // Create a pipe for test input
+        let inputPipe = Pipe()
+        
         var testOptions = options
         testOptions.output = outputCapture
+        testOptions.input = inputPipe.fileHandleForReading
         testOptions.fps = 120 // High FPS for faster testing
+        testOptions.disableSignals = true // Disable signal handling in tests
         
+        self.outputCapture = outputCapture
         self.program = Program(initialModel: model, options: testOptions)
-        
-        // Set up output capture callback
-        outputCapture.onWrite = { [weak self] content in
-            self?.capturedOutput += content
-        }
     }
     
     /// Sends a message to the program
     public func send(_ message: M.Msg) async {
         messages.append(message)
         program.send(message)
+        
         // Allow message to be processed
         try? await Task.sleep(for: .milliseconds(10))
     }
     
     /// Sends a key press event
     public func sendKey(_ key: String) async {
-        let keyMsg = Key(description: key)
+        let keyMsg: KeyMsg
+        if key.count == 1 {
+            keyMsg = KeyMsg(character: Character(key))
+        } else {
+            // Handle special keys
+            switch key {
+            case "enter": keyMsg = KeyMsg(type: .enter)
+            case "escape": keyMsg = KeyMsg(type: .escape)
+            case "up": keyMsg = KeyMsg(type: .up)
+            case "down": keyMsg = KeyMsg(type: .down)
+            case "left": keyMsg = KeyMsg(type: .left)
+            case "right": keyMsg = KeyMsg(type: .right)
+            default: keyMsg = KeyMsg(character: "?")
+            }
+        }
         if let msg = keyMsg as? M.Msg {
             await send(msg)
         }
@@ -54,11 +71,11 @@ public class ProgramTester<M: Model> {
         let mouseEvent = MouseEvent(
             x: x,
             y: y,
-            action: action,
-            button: button,
             shift: false,
             alt: false,
-            ctrl: false
+            ctrl: false,
+            action: action,
+            button: button
         )
         if let msg = mouseEvent as? M.Msg {
             await send(msg)
@@ -67,67 +84,61 @@ public class ProgramTester<M: Model> {
     
     /// Gets the current rendered view
     public func getCurrentView() -> String {
-        return capturedOutput
+        return outputCapture.getBuffer()
     }
     
     /// Clears the captured output
     public func clearOutput() {
-        capturedOutput = ""
+        outputCapture.clear()
     }
     
     /// Expects the view to contain a specific string
-    public func expectView(containing text: String, file: StaticString = #file, line: UInt = #line) async throws {
+    public func expectView(containing text: String, sourceLocation: SourceLocation = #_sourceLocation) async throws {
         // Allow rendering to complete
         try await Task.sleep(for: .milliseconds(50))
         
         let view = getCurrentView()
-        XCTAssertTrue(
+        
+        #expect(
             view.contains(text),
             "Expected view to contain '\(text)' but got:\n\(view)",
-            file: file,
-            line: line
+            sourceLocation: sourceLocation
         )
     }
     
     /// Expects the view to match exactly
-    public func expectView(equalTo expected: String, file: StaticString = #file, line: UInt = #line) async throws {
+    public func expectView(equalTo expected: String, sourceLocation: SourceLocation = #_sourceLocation) async throws {
         // Allow rendering to complete
         try await Task.sleep(for: .milliseconds(50))
         
         let view = getCurrentView()
-        XCTAssertEqual(
-            view.trimmingCharacters(in: .whitespacesAndNewlines),
-            expected.trimmingCharacters(in: .whitespacesAndNewlines),
-            file: file,
-            line: line
+        
+        #expect(
+            view.trimmingCharacters(in: .whitespacesAndNewlines) == expected.trimmingCharacters(in: .whitespacesAndNewlines),
+            sourceLocation: sourceLocation
         )
     }
     
     /// Expects the view to match a regex pattern
-    public func expectView(matching pattern: String, file: StaticString = #file, line: UInt = #line) async throws {
+    public func expectView(matching pattern: String, sourceLocation: SourceLocation = #_sourceLocation) async throws {
         // Allow rendering to complete
         try await Task.sleep(for: .milliseconds(50))
         
         let view = getCurrentView()
+        
         let regex = try NSRegularExpression(pattern: pattern)
         let range = NSRange(location: 0, length: view.utf16.count)
         
-        XCTAssertTrue(
+        #expect(
             regex.firstMatch(in: view, range: range) != nil,
             "Expected view to match pattern '\(pattern)' but got:\n\(view)",
-            file: file,
-            line: line
+            sourceLocation: sourceLocation
         )
-    }
-    
-    /// Gets the current model state
-    public var model: M {
-        return program.model
     }
     
     /// Runs the program for a specific duration
     public func run(for duration: Duration) async throws {
-        let task = Task {
+        let task = Task { @MainActor in
             try await program.run()
         }
         
@@ -139,28 +150,73 @@ public class ProgramTester<M: Model> {
     
     /// Runs a test scenario with automatic cleanup
     public func test(_ scenario: () async throws -> Void) async throws {
-        defer {
-            program.quit()
+        // Start the program in the background
+        let programTask = Task { @MainActor in
+            try await program.run()
         }
         
-        try await scenario()
+        // Give the program time to start and render initial view
+        try await Task.sleep(for: .milliseconds(100))
+        
+        do {
+            try await scenario()
+        } catch {
+            program.quit()
+            _ = try? await programTask.value
+            throw error
+        }
+        
+        program.quit()
+        _ = try? await programTask.value
     }
 }
 
 /// Output capture stream for testing
-private class OutputCapture: TextOutputStream, @unchecked Sendable {
-    var onWrite: ((String) -> Void)?
+public class OutputCapture: TextOutputStream, @unchecked Sendable {
+    private let lock = NSLock()
+    private var buffer: String = ""
+    public var onWrite: ((String) -> Void)?
     
-    func write(_ string: String) {
+    public init() {}
+    
+    public func write(_ string: String) {
+        lock.lock()
+        defer { lock.unlock() }
+        buffer += string
         onWrite?(string)
+    }
+    
+    public func getBuffer() -> String {
+        lock.lock()
+        defer { lock.unlock() }
+        return buffer
+    }
+    
+    public func clear() {
+        lock.lock()
+        defer { lock.unlock() }
+        buffer = ""
     }
 }
 
 // MARK: - Test Helpers
 
 /// Creates a mock key event
-public func mockKey(_ key: String, alt: Bool = false, ctrl: Bool = false) -> Key {
-    return Key(description: key)
+public func mockKey(_ key: String, alt: Bool = false) -> KeyMsg {
+    if key.count == 1 {
+        return KeyMsg(character: Character(key), alt: alt)
+    } else {
+        // Handle special keys
+        switch key {
+        case "enter": return KeyMsg(type: .enter, alt: alt)
+        case "escape": return KeyMsg(type: .escape, alt: alt)
+        case "up": return KeyMsg(type: .up, alt: alt)
+        case "down": return KeyMsg(type: .down, alt: alt)
+        case "left": return KeyMsg(type: .left, alt: alt)
+        case "right": return KeyMsg(type: .right, alt: alt)
+        default: return KeyMsg(character: "?", alt: alt)
+        }
+    }
 }
 
 /// Creates a mock window size message
@@ -172,16 +228,15 @@ public func mockWindowSize(width: Int, height: Int) -> WindowSizeMsg {
 public func assertThrows<T, E: Error>(
     _ expression: () async throws -> T,
     errorType: E.Type,
-    file: StaticString = #file,
-    line: UInt = #line
+    sourceLocation: SourceLocation = #_sourceLocation
 ) async {
     do {
         _ = try await expression()
-        XCTFail("Expected error of type \(errorType) but no error was thrown", file: file, line: line)
+        Issue.record("Expected error of type \(errorType) but no error was thrown", sourceLocation: sourceLocation)
     } catch let error as E {
         // Success - got expected error type
         _ = error
     } catch {
-        XCTFail("Expected error of type \(errorType) but got \(type(of: error))", file: file, line: line)
+        Issue.record("Expected error of type \(errorType) but got \(type(of: error))", sourceLocation: sourceLocation)
     }
 }

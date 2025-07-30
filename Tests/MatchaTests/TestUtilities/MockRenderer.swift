@@ -126,6 +126,48 @@ public actor MockRenderer: Renderer {
         renderCalls.append("resetLinesRendered()")
     }
     
+    public func syncScrollArea(lines: [String], topBoundary: Int, bottomBoundary: Int) async {
+        renderCalls.append("syncScrollArea(lines: \(lines.count), topBoundary: \(topBoundary), bottomBoundary: \(bottomBoundary))")
+    }
+    
+    public func scrollUp(newLines: [String], topBoundary: Int, bottomBoundary: Int) async {
+        renderCalls.append("scrollUp(newLines: \(newLines.count), topBoundary: \(topBoundary), bottomBoundary: \(bottomBoundary))")
+    }
+    
+    public func scrollDown(newLines: [String], topBoundary: Int, bottomBoundary: Int) async {
+        renderCalls.append("scrollDown(newLines: \(newLines.count), topBoundary: \(topBoundary), bottomBoundary: \(bottomBoundary))")
+    }
+    
+    public func clearScrollArea() async {
+        renderCalls.append("clearScrollArea()")
+    }
+    
+    public func setIgnoredLineRanges(_ ranges: [Range<Int>]) async {
+        renderCalls.append("setIgnoredLineRanges(\(ranges.count) ranges)")
+    }
+    
+    public func setIgnoredLinePatterns(_ patterns: [String]) async {
+        renderCalls.append("setIgnoredLinePatterns(\(patterns.count) patterns)")
+    }
+    
+    public func clearIgnoredLines() async {
+        renderCalls.append("clearIgnoredLines()")
+    }
+    
+    public func setTerminalSize(width: Int, height: Int) async {
+        renderCalls.append("setTerminalSize(width: \(width), height: \(height))")
+    }
+    
+    public var terminalSize: (width: Int, height: Int) {
+        get async {
+            (width: 80, height: 24)
+        }
+    }
+    
+    public func queueMessageLine(_ line: String) async {
+        renderCalls.append("queueMessageLine(\(line.debugDescription))")
+    }
+    
     /// Verifies that a specific rendering call was made
     public func verifyCalled(_ expectedCall: String) -> Bool {
         return renderCalls.contains(expectedCall)

@@ -159,9 +159,10 @@ struct MessageQueueTests {
             // Allow time for processing
             try await Task.sleep(for: .milliseconds(100))
             
-            // Verify the model tracked the messages
-            #expect(tester.model.printed.contains("Test message 1"))
-            #expect(tester.model.printed.contains("Test message 2"))
+            // Verify the messages were printed
+            let view = tester.getCurrentView()
+            #expect(view.contains("Tracked: Test message 1"))
+            #expect(view.contains("Tracked: Test message 2"))
         }
     }
 }

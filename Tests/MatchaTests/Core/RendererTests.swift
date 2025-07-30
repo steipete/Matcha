@@ -247,13 +247,3 @@ struct StandardRendererTests {
         await renderer.stop()
     }
 }
-
-// MARK: - Test Output Stream
-
-private class TestOutputStream: TextOutputStream, @unchecked Sendable {
-    var content = ""
-    
-    func write(_ string: String) {
-        content += string
-    }
-}
