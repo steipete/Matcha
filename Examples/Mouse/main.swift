@@ -1,12 +1,7 @@
-//
-//  main.swift
-//  Mouse Example
-//
-//  Demonstrates mouse tracking and events in Matcha.
-//
-
 import Foundation
 import Matcha
+
+// MARK: - MouseModel
 
 // Model that tracks mouse events
 public struct MouseModel: Model {
@@ -138,6 +133,8 @@ public struct MouseModel: Model {
     }
 }
 
+// MARK: - MouseApp
+
 // Main entry point
 @main
 enum MouseApp {
@@ -148,10 +145,11 @@ enum MouseApp {
         options.mouseMode = .cellMotion
 
         // Add a filter to handle messages
-        options.filter = { model, message in
+        options.filter = { _, message in
             if let key = message as? KeyMsg {
                 switch key.description {
-                case "q", "ctrl+c":
+                case "ctrl+c",
+                     "q":
                     return QuitMsg()
                 default:
                     return MouseModel.Message.key(key)

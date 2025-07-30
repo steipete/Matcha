@@ -2,37 +2,37 @@ import Foundation
 import Matcha
 import MatchaStyle
 
-// MARK: - Model
+// MARK: - ExecModel
 
 struct ExecModel: Model {
     // MARK: - Messages
+
     enum Msg: Message {
         case key(KeyMsg)
         case commandFinished(stdout: String, stderr: String, exitCode: Int32)
     }
-    
+
     // MARK: - State
+
     var command: String = ""
     var output: String = ""
     var isRunning: Bool = false
     var error: String = ""
-    
-    // MARK: - Model Protocol
-    init() {}
-    
+
     func `init`() -> Command<Msg>? {
         nil
     }
-    
+
     func update(_ message: Msg) -> (ExecModel, Command<Msg>?) {
         var model = self
-        
+
         switch message {
-        case .key(let key):
+        case let .key(key):
             switch key.type {
-            case .runes where key.runes.contains("q"), .ctrlC:
+            case .ctrlC,
+                 .runes where key.runes.contains("q"):
                 return (model, quit())
-                
+
             case .runes where key.runes.contains("l"):
                 // Run ls command
                 model.isRunning = true
@@ -44,29 +44,29 @@ struct ExecModel: Model {
                     let process = Process()
                     process.executableURL = URL(fileURLWithPath: "/bin/ls")
                     process.arguments = ["-la"]
-                    
+
                     let pipe = Pipe()
                     let errorPipe = Pipe()
                     process.standardOutput = pipe
                     process.standardError = errorPipe
-                    
+
                     do {
                         try process.run()
                         process.waitUntilExit()
-                        
+
                         let data = pipe.fileHandleForReading.readDataToEndOfFile()
                         let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
-                        
+
                         let output = String(data: data, encoding: .utf8) ?? ""
                         let error = String(data: errorData, encoding: .utf8) ?? ""
-                        
+
                         return Msg.commandFinished(stdout: output, stderr: error, exitCode: process.terminationStatus)
                     } catch {
                         return Msg.commandFinished(stdout: "", stderr: error.localizedDescription, exitCode: -1)
                     }
                 }
                 return (model, cmd)
-                
+
             case .runes where key.runes.contains("d"):
                 // Run date command
                 model.isRunning = true
@@ -81,7 +81,7 @@ struct ExecModel: Model {
                     return Msg.commandFinished(stdout: dateString, stderr: "", exitCode: 0)
                 }
                 return (model, cmd)
-                
+
             case .runes where key.runes.contains("p"):
                 // Run pwd command
                 model.isRunning = true
@@ -93,7 +93,7 @@ struct ExecModel: Model {
                     return Msg.commandFinished(stdout: pwd, stderr: "", exitCode: 0)
                 }
                 return (model, cmd)
-                
+
             case .runes where key.runes.contains("e"):
                 // Run echo command
                 model.isRunning = true
@@ -104,7 +104,7 @@ struct ExecModel: Model {
                     return Msg.commandFinished(stdout: "Hello from Matcha!", stderr: "", exitCode: 0)
                 }
                 return (model, cmd)
-                
+
             case .runes where key.runes.contains("f"):
                 // Run a failing command
                 model.isRunning = true
@@ -115,12 +115,12 @@ struct ExecModel: Model {
                     return Msg.commandFinished(stdout: "", stderr: "Command failed", exitCode: 1)
                 }
                 return (model, cmd)
-                
+
             default:
                 break
             }
-            
-        case .commandFinished(let stdout, let stderr, let exitCode):
+
+        case let .commandFinished(stdout, stderr, exitCode):
             model.isRunning = false
             if exitCode == 0 {
                 model.output = stdout
@@ -130,17 +130,17 @@ struct ExecModel: Model {
                 model.error = "Command failed with exit code: \(exitCode)\n\(stderr)"
             }
         }
-        
+
         return (model, nil)
     }
-    
+
     func view() -> String {
         var lines: [String] = []
-        
+
         // Title
         lines.append(style.bold().render("Command Execution Example"))
         lines.append("")
-        
+
         // Instructions
         lines.append("Press a key to run a command:")
         lines.append("  l - List files (ls -la)")
@@ -150,7 +150,7 @@ struct ExecModel: Model {
         lines.append("  f - Run failing command")
         lines.append("  q - Quit")
         lines.append("")
-        
+
         // Status
         if isRunning {
             lines.append(style.foreground(.yellow).render("Running: \(command)..."))
@@ -159,7 +159,7 @@ struct ExecModel: Model {
             lines.append(style.foreground(.cyan).render("Last command: \(command)"))
             lines.append("")
         }
-        
+
         // Output
         if !output.isEmpty {
             lines.append(style.foreground(.green).render("Output:"))
@@ -167,7 +167,7 @@ struct ExecModel: Model {
             lines.append(output)
             lines.append(style.faint().render(String(repeating: "─", count: 50)))
         }
-        
+
         // Error
         if !error.isEmpty {
             lines.append(style.foreground(.red).render("Error:"))
@@ -175,7 +175,7 @@ struct ExecModel: Model {
             lines.append(style.foreground(.red).render(error))
             lines.append(style.faint().render(String(repeating: "─", count: 50)))
         }
-        
+
         return lines.joined(separator: "\n")
     }
 }
@@ -184,18 +184,20 @@ struct ExecModel: Model {
 
 let style = Style()
 
+// MARK: - ExecExample
+
 @main
 struct ExecExample {
     static func main() async throws {
         var options = ProgramOptions()
         options.useAltScreen = true
         options.mouseMode = .disabled
-        
+
         let app = Program(
             initialModel: ExecModel(),
             options: options
         )
-        
+
         _ = try await app.run()
     }
 }

@@ -1,12 +1,7 @@
-//
-//  main.swift
-//  Timer Example
-//
-//  Demonstrates timer commands in Matcha.
-//
-
 import Foundation
 import Matcha
+
+// MARK: - TimerModel
 
 // Timer model that counts seconds
 public struct TimerModel: Model {
@@ -60,7 +55,8 @@ public struct TimerModel: Model {
 
         case let .key(key):
             switch key.description {
-            case " ", "space":
+            case " ",
+                 "space":
                 return update(.toggleTimer)
             case "r":
                 return update(.reset)
@@ -95,6 +91,8 @@ public struct TimerModel: Model {
     }
 }
 
+// MARK: - TimerApp
+
 // Main entry point
 @main
 enum TimerApp {
@@ -105,7 +103,8 @@ enum TimerApp {
         options.filter = { _, message in
             if let key = message as? KeyMsg {
                 switch key.description {
-                case "q", "ctrl+c":
+                case "ctrl+c",
+                     "q":
                     return QuitMsg()
                 default:
                     return TimerModel.Message.key(key)

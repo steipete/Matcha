@@ -1,11 +1,6 @@
-//
-//  main.swift
-//  Simple Example
-//
-//  The simplest possible Matcha application.
-//
-
 import Matcha
+
+// MARK: - SimpleModel
 
 // Simple model that just displays a message
 public struct SimpleModel: Model {
@@ -33,6 +28,8 @@ public struct SimpleModel: Model {
         """
     }
 }
+
+// MARK: - SimpleApp
 
 @main
 enum SimpleApp {

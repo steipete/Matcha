@@ -1,16 +1,11 @@
-//
-//  Terminal.swift
-//  Matcha
-//
-//  Terminal control and raw mode handling.
-//
-
 import Foundation
 #if os(macOS)
     import Darwin
 #elseif os(Linux)
     import Glibc
 #endif
+
+// MARK: - Terminal
 
 /// Provides terminal control functionality
 public struct Terminal: Sendable {

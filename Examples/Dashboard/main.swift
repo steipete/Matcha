@@ -1,59 +1,48 @@
-//
-//  main.swift
-//  Dashboard Example
-//
-//  A comprehensive dashboard application demonstrating multiple Matcha features:
-//  - Multiple UI components
-//  - Mouse interaction
-//  - Scroll regions
-//  - Real-time updates
-//  - Keyboard shortcuts
-//  - Focus management
-//
-
 import Foundation
 import Matcha
 
-// MARK: - Dashboard Model
+// MARK: - DashboardModel
 
 public struct DashboardModel: Model {
     // Component states
     var selectedPanel: Panel = .metrics
-    var metricsData: MetricsData = MetricsData()
+    var metricsData = MetricsData()
     var logEntries: [LogEntry] = []
     var taskList: [Task] = Task.sampleTasks()
     var selectedTaskIndex: Int = 0
     var commandInput: String = ""
     var isCommandMode: Bool = false
     var lastUpdate = Date()
-    
+
     // Window dimensions
     var windowWidth: Int = 80
     var windowHeight: Int = 24
-    
+
     // Scroll positions
     var logScrollOffset: Int = 0
     var taskScrollOffset: Int = 0
-    
+
     enum Panel {
-        case metrics, logs, tasks
-        
+        case metrics
+        case logs
+        case tasks
+
         var title: String {
             switch self {
-            case .metrics: return "System Metrics"
-            case .logs: return "Activity Logs"
-            case .tasks: return "Task Manager"
+            case .metrics: "System Metrics"
+            case .logs: "Activity Logs"
+            case .tasks: "Task Manager"
             }
         }
     }
-    
+
     struct MetricsData {
         var cpuUsage: Double = 45.2
         var memoryUsage: Double = 62.8
         var diskUsage: Double = 78.1
-        var networkIn: Double = 125.4  // KB/s
-        var networkOut: Double = 89.2  // KB/s
-        
+        var networkIn: Double = 125.4 // KB/s
+        var networkOut: Double = 89.2 // KB/s
+
         mutating func randomUpdate() {
             cpuUsage = max(0, min(100, cpuUsage + Double.random(in: -5...5)))
             memoryUsage = max(0, min(100, memoryUsage + Double.random(in: -3...3)))
@@ -62,32 +51,34 @@ public struct DashboardModel: Model {
             networkOut = max(0, networkOut + Double.random(in: -15...15))
         }
     }
-    
+
     struct LogEntry {
         let timestamp: Date
         let level: LogLevel
         let message: String
-        
+
         enum LogLevel {
-            case info, warning, error
-            
+            case info
+            case warning
+            case error
+
             var symbol: String {
                 switch self {
-                case .info: return "ℹ"
-                case .warning: return "⚠"
-                case .error: return "✖"
+                case .info: "ℹ"
+                case .warning: "⚠"
+                case .error: "✖"
                 }
             }
-            
+
             var color: String {
                 switch self {
-                case .info: return "\u{1B}[34m"      // Blue
-                case .warning: return "\u{1B}[33m"   // Yellow
-                case .error: return "\u{1B}[31m"     // Red
+                case .info: "\u{1B}[34m" // Blue
+                case .warning: "\u{1B}[33m" // Yellow
+                case .error: "\u{1B}[31m" // Red
                 }
             }
         }
-        
+
         static func random() -> LogEntry {
             let messages = [
                 (LogLevel.info, "System check completed successfully"),
@@ -103,37 +94,40 @@ public struct DashboardModel: Model {
             return LogEntry(timestamp: Date(), level: level, message: message)
         }
     }
-    
+
     struct Task {
         let id: UUID
         var title: String
         var status: Status
-        var progress: Int  // 0-100
-        
+        var progress: Int // 0-100
+
         enum Status {
-            case pending, running, completed, failed
-            
+            case pending
+            case running
+            case completed
+            case failed
+
             var symbol: String {
                 switch self {
-                case .pending: return "○"
-                case .running: return "◉"
-                case .completed: return "✓"
-                case .failed: return "✗"
+                case .pending: "○"
+                case .running: "◉"
+                case .completed: "✓"
+                case .failed: "✗"
                 }
             }
-            
+
             var color: String {
                 switch self {
-                case .pending: return "\u{1B}[37m"     // White
-                case .running: return "\u{1B}[36m"     // Cyan
-                case .completed: return "\u{1B}[32m"   // Green
-                case .failed: return "\u{1B}[31m"      // Red
+                case .pending: "\u{1B}[37m" // White
+                case .running: "\u{1B}[36m" // Cyan
+                case .completed: "\u{1B}[32m" // Green
+                case .failed: "\u{1B}[31m" // Red
                 }
             }
         }
-        
+
         static func sampleTasks() -> [Task] {
-            return [
+            [
                 Task(id: UUID(), title: "Initialize database", status: .completed, progress: 100),
                 Task(id: UUID(), title: "Load configuration", status: .completed, progress: 100),
                 Task(id: UUID(), title: "Process data batch #1", status: .running, progress: 67),
@@ -144,9 +138,9 @@ public struct DashboardModel: Model {
             ]
         }
     }
-    
+
     // MARK: - Messages
-    
+
     public enum Message: Matcha.Message {
         case tick
         case key(KeyMsg)
@@ -161,25 +155,25 @@ public struct DashboardModel: Model {
         case executeCommand
         case updateCommandInput(String)
     }
-    
+
     // MARK: - Model Protocol
-    
+
     public init() {}
-    
+
     public func `init`() -> Command<Message>? {
         // Start the tick timer for real-time updates
         tick()
     }
-    
+
     public func update(_ message: Message) -> (DashboardModel, Command<Message>?) {
         var model = self
-        
+
         switch message {
         case .tick:
             // Update metrics
             model.metricsData.randomUpdate()
             model.lastUpdate = Date()
-            
+
             // Occasionally add a new log entry
             if Int.random(in: 0...2) == 0 {
                 model.logEntries.insert(LogEntry.random(), at: 0)
@@ -188,7 +182,7 @@ public struct DashboardModel: Model {
                     model.logEntries.removeLast()
                 }
             }
-            
+
             // Update running tasks
             for i in 0..<model.taskList.count {
                 if model.taskList[i].status == .running {
@@ -202,38 +196,38 @@ public struct DashboardModel: Model {
                     }
                 }
             }
-            
+
             return (model, tick())
-            
-        case .key(let key):
+
+        case let .key(key):
             if model.isCommandMode {
                 return handleCommandMode(model: &model, key: key)
             } else {
                 return handleNormalMode(model: &model, key: key)
             }
-            
-        case .mouse(let mouse):
+
+        case let .mouse(mouse):
             return handleMouse(model: &model, mouse: mouse)
-            
-        case .windowSize(let size):
+
+        case let .windowSize(size):
             model.windowWidth = size.width
             model.windowHeight = size.height
             return (model, nil)
-            
-        case .selectPanel(let panel):
+
+        case let .selectPanel(panel):
             model.selectedPanel = panel
             return (model, nil)
-            
-        case .scrollLogs(let delta):
+
+        case let .scrollLogs(delta):
             let maxScroll = max(0, model.logEntries.count - 10)
             model.logScrollOffset = max(0, min(maxScroll, model.logScrollOffset + delta))
             return (model, nil)
-            
-        case .scrollTasks(let delta):
+
+        case let .scrollTasks(delta):
             let maxScroll = max(0, model.taskList.count - 5)
             model.taskScrollOffset = max(0, min(maxScroll, model.taskScrollOffset + delta))
             return (model, nil)
-            
+
         case .toggleTask:
             if model.selectedTaskIndex < model.taskList.count {
                 let task = model.taskList[model.selectedTaskIndex]
@@ -243,41 +237,43 @@ public struct DashboardModel: Model {
                 case .running:
                     model.taskList[model.selectedTaskIndex].status = .pending
                     model.taskList[model.selectedTaskIndex].progress = 0
-                case .completed, .failed:
+                case .completed,
+                     .failed:
                     break // Can't toggle completed/failed tasks
                 }
             }
             return (model, nil)
-            
+
         case .enterCommandMode:
             model.isCommandMode = true
             model.commandInput = ""
             return (model, nil)
-            
+
         case .exitCommandMode:
             model.isCommandMode = false
             model.commandInput = ""
             return (model, nil)
-            
+
         case .executeCommand:
             // Execute the command
             let command = model.commandInput.trimmingCharacters(in: .whitespaces)
             model.isCommandMode = false
             model.commandInput = ""
-            
+
             // Add command to logs
             model.logEntries.insert(
                 LogEntry(timestamp: Date(), level: .info, message: "Command executed: \(command)"),
                 at: 0
             )
-            
+
             // Handle specific commands
             switch command {
             case "clear logs":
                 model.logEntries = []
             case "reset tasks":
                 model.taskList = Task.sampleTasks()
-            case "quit", "exit":
+            case "exit",
+                 "quit":
                 return (model, quit())
             default:
                 model.logEntries.insert(
@@ -285,25 +281,25 @@ public struct DashboardModel: Model {
                     at: 0
                 )
             }
-            
+
             return (model, nil)
-            
-        case .updateCommandInput(let input):
+
+        case let .updateCommandInput(input):
             model.commandInput = input
             return (model, nil)
         }
     }
-    
+
     public func view() -> String {
         var output = ""
-        
+
         // Header
         output += renderHeader()
         output += "\n"
-        
+
         // Main content area
-        let contentHeight = windowHeight - 6  // Header + footer
-        
+        let contentHeight = windowHeight - 6 // Header + footer
+
         switch selectedPanel {
         case .metrics:
             output += renderMetrics(height: contentHeight)
@@ -312,11 +308,11 @@ public struct DashboardModel: Model {
         case .tasks:
             output += renderTasks(height: contentHeight)
         }
-        
+
         // Footer
         output += "\n"
         output += renderFooter()
-        
+
         return output
     }
 }
@@ -329,7 +325,7 @@ extension DashboardModel {
         let title = "╔═ System Dashboard ═╗"
         let padding = (windowWidth - title.count) / 2
         header += String(repeating: " ", count: max(0, padding)) + title + "\n"
-        
+
         // Panel tabs
         header += " "
         for panel in [Panel.metrics, Panel.logs, Panel.tasks] {
@@ -339,7 +335,7 @@ extension DashboardModel {
                 header += " \(panel.title)  "
             }
         }
-        
+
         // Last update time
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm:ss"
@@ -349,106 +345,109 @@ extension DashboardModel {
         if spacer > 0 {
             header += String(repeating: " ", count: spacer) + timeInfo
         }
-        
+
         return header
     }
-    
+
     func renderMetrics(height: Int) -> String {
         var output = ""
-        
+
         // CPU Usage
         output += "\n  \u{1B}[1mCPU Usage:\u{1B}[0m\n"
         output += "  " + renderProgressBar(value: metricsData.cpuUsage, width: 40) + " \(String(format: "%.1f", metricsData.cpuUsage))%\n"
-        
+
         // Memory Usage
         output += "\n  \u{1B}[1mMemory Usage:\u{1B}[0m\n"
         output += "  " + renderProgressBar(value: metricsData.memoryUsage, width: 40) + " \(String(format: "%.1f", metricsData.memoryUsage))%\n"
-        
+
         // Disk Usage
         output += "\n  \u{1B}[1mDisk Usage:\u{1B}[0m\n"
         output += "  " + renderProgressBar(value: metricsData.diskUsage, width: 40) + " \(String(format: "%.1f", metricsData.diskUsage))%\n"
-        
+
         // Network
         output += "\n  \u{1B}[1mNetwork:\u{1B}[0m\n"
         output += "  ↓ In:  \(String(format: "%6.1f", metricsData.networkIn)) KB/s\n"
         output += "  ↑ Out: \(String(format: "%6.1f", metricsData.networkOut)) KB/s\n"
-        
+
         return output
     }
-    
+
     func renderLogs(height: Int) -> String {
         var output = ""
-        
+
         output += "┌─ Recent Activity ─┐\n"
-        
+
         let visibleLogs = min(height - 2, 10)
         let endIndex = min(logEntries.count, logScrollOffset + visibleLogs)
-        
+
         for i in logScrollOffset..<endIndex {
             let entry = logEntries[i]
             let formatter = DateFormatter()
             formatter.dateFormat = "HH:mm:ss"
             let time = formatter.string(from: entry.timestamp)
-            
+
             output += " \(time) \(entry.level.color)\(entry.level.symbol)\u{1B}[0m \(entry.message)\n"
         }
-        
+
         // Fill empty space
         for _ in endIndex..<(logScrollOffset + visibleLogs) {
             output += "\n"
         }
-        
+
         // Scroll indicator
         if logEntries.count > visibleLogs {
             let scrollPos = logEntries.isEmpty ? 0 : (logScrollOffset * 100) / max(1, logEntries.count - visibleLogs)
             output += " [\(scrollPos)%] Use ↑/↓ to scroll\n"
         }
-        
+
         return output
     }
-    
+
     func renderTasks(height: Int) -> String {
         var output = ""
-        
+
         output += "┌─ Task Manager ─┐\n"
-        
+
         let visibleTasks = min(height - 2, 8)
         let endIndex = min(taskList.count, taskScrollOffset + visibleTasks)
-        
+
         for i in taskScrollOffset..<endIndex {
             let task = taskList[i]
             let isSelected = i == selectedTaskIndex
-            
+
             if isSelected {
                 output += "\u{1B}[7m" // Reverse video
             }
-            
+
             output += " \(task.status.color)\(task.status.symbol)\u{1B}[0m "
             output += task.title
-            
+
             // Progress bar for running tasks
             if task.status == .running {
                 let barWidth = 15
                 let filled = (task.progress * barWidth) / 100
-                let progressBar = String(repeating: "█", count: filled) + String(repeating: "░", count: barWidth - filled)
+                let progressBar = String(repeating: "█", count: filled) + String(
+                    repeating: "░",
+                    count: barWidth - filled
+                )
                 output += " [\(progressBar)] \(task.progress)%"
             }
-            
+
             if isSelected {
                 output += "\u{1B}[0m" // Reset
             }
-            
+
             output += "\n"
         }
-        
+
         // Fill empty space
         for _ in endIndex..<(taskScrollOffset + visibleTasks) {
             output += "\n"
         }
-        
+
         return output
     }
-    
+
     func renderFooter() -> String {
         if isCommandMode {
             return " Command: \(commandInput)█"
@@ -458,19 +457,21 @@ extension DashboardModel {
             return String(repeating: " ", count: max(0, padding)) + shortcuts
         }
     }
-    
+
     func renderProgressBar(value: Double, width: Int) -> String {
         let filled = Int((value / 100.0) * Double(width))
-        let color: String
-        if value > 80 {
-            color = "\u{1B}[31m" // Red
+        let color = if value > 80 {
+            "\u{1B}[31m" // Red
         } else if value > 60 {
-            color = "\u{1B}[33m" // Yellow
+            "\u{1B}[33m" // Yellow
         } else {
-            color = "\u{1B}[32m" // Green
+            "\u{1B}[32m" // Green
         }
-        
-        return color + String(repeating: "█", count: filled) + "\u{1B}[0m" + String(repeating: "░", count: width - filled)
+
+        return color + String(repeating: "█", count: filled) + "\u{1B}[0m" + String(
+            repeating: "░",
+            count: width - filled
+        )
     }
 }
 
@@ -478,9 +479,10 @@ extension DashboardModel {
 
 func handleNormalMode(model: inout DashboardModel, key: KeyMsg) -> (DashboardModel, Command<DashboardModel.Message>?) {
     switch key.type {
-    case .character(let char):
+    case let .character(char):
         switch char {
-        case "q", "Q":
+        case "q",
+             "Q":
             return (model, quit())
         case ":":
             return (model, Command { .enterCommandMode })
@@ -491,7 +493,7 @@ func handleNormalMode(model: inout DashboardModel, key: KeyMsg) -> (DashboardMod
         default:
             break
         }
-        
+
     case .tab:
         // Cycle through panels
         switch model.selectedPanel {
@@ -502,7 +504,7 @@ func handleNormalMode(model: inout DashboardModel, key: KeyMsg) -> (DashboardMod
         case .tasks:
             model.selectedPanel = .metrics
         }
-        
+
     case .up:
         switch model.selectedPanel {
         case .logs:
@@ -518,7 +520,7 @@ func handleNormalMode(model: inout DashboardModel, key: KeyMsg) -> (DashboardMod
         default:
             break
         }
-        
+
     case .down:
         switch model.selectedPanel {
         case .logs:
@@ -535,41 +537,42 @@ func handleNormalMode(model: inout DashboardModel, key: KeyMsg) -> (DashboardMod
         default:
             break
         }
-        
-    case .escape, .ctrlC:
+
+    case .ctrlC,
+         .escape:
         return (model, quit())
-        
+
     default:
         break
     }
-    
+
     return (model, nil)
 }
 
 func handleCommandMode(model: inout DashboardModel, key: KeyMsg) -> (DashboardModel, Command<DashboardModel.Message>?) {
     switch key.type {
-    case .character(let char):
+    case let .character(char):
         model.commandInput.append(char)
-        
+
     case .backspace:
         _ = model.commandInput.popLast()
-        
+
     case .enter:
         return (model, Command { .executeCommand })
-        
+
     case .escape:
         return (model, Command { .exitCommandMode })
-        
+
     default:
         break
     }
-    
+
     return (model, nil)
 }
 
 func handleMouse(model: inout DashboardModel, mouse: MouseMsg) -> (DashboardModel, Command<DashboardModel.Message>?) {
     // Handle panel selection by clicking on tabs
-    if mouse.y == 2 && mouse.action == .press && mouse.type == .left {
+    if mouse.y == 2, mouse.action == .press, mouse.type == .left {
         if mouse.x < 20 {
             model.selectedPanel = .metrics
         } else if mouse.x < 35 {
@@ -578,7 +581,7 @@ func handleMouse(model: inout DashboardModel, mouse: MouseMsg) -> (DashboardMode
             model.selectedPanel = .tasks
         }
     }
-    
+
     // Handle scrolling
     if mouse.action == .wheel {
         switch model.selectedPanel {
@@ -592,7 +595,7 @@ func handleMouse(model: inout DashboardModel, mouse: MouseMsg) -> (DashboardMode
             break
         }
     }
-    
+
     return (model, nil)
 }
 

@@ -1,14 +1,9 @@
-//
-//  KeyBindingExample.swift
-//  Matcha
-//
-//  Demonstrates the KeyBinding system for managing keyboard shortcuts.
-//
-
 import Foundation
 import Matcha
 import MatchaBubbles
 import MatchaStyle
+
+// MARK: - KeyBindingModel
 
 struct KeyBindingModel: Model, KeyBindable {
     var keyMap: KeyMap
@@ -16,13 +11,13 @@ struct KeyBindingModel: Model, KeyBindable {
     var showHelp: Bool = false
     var selectedMode: Mode = .normal
     var helpComponent: Help
-    
+
     enum Mode: String, CaseIterable {
         case normal = "Normal"
         case edit = "Edit"
         case command = "Command"
     }
-    
+
     enum Message: Matcha.Message {
         case key(KeyMsg)
         case action(String)
@@ -30,20 +25,20 @@ struct KeyBindingModel: Model, KeyBindable {
         case switchMode(Mode)
         case quit
     }
-    
+
     init() {
         // Build the key map based on the current mode
         self.keyMap = Self.buildKeyMap(for: .normal)
-        
+
         // Initialize help component
         self.helpComponent = Help(groups: keyMap.helpGroups())
-        self.helpComponent.displayStyle = .full
-        self.helpComponent.showTitle = false  // We'll show our own title
+        helpComponent.displayStyle = .full
+        helpComponent.showTitle = false // We'll show our own title
     }
-    
+
     static func buildKeyMap(for mode: Mode) -> KeyMap {
         let builder = KeyMapBuilder()
-        
+
         switch mode {
         case .normal:
             return builder
@@ -74,7 +69,7 @@ struct KeyBindingModel: Model, KeyBindable {
                 .bind("?", help: "Toggle help")
                 .bind("ctrl+c", "q", help: KeyHelp(key: "Ctrl+C/Q", desc: "Quit"))
                 .build()
-                
+
         case .edit:
             return builder
                 .category("Editing")
@@ -98,7 +93,7 @@ struct KeyBindingModel: Model, KeyBindable {
                 .category("Application")
                 .bind("?", help: "Toggle help")
                 .build()
-                
+
         case .command:
             return builder
                 .category("Commands")
@@ -124,16 +119,16 @@ struct KeyBindingModel: Model, KeyBindable {
                 .build()
         }
     }
-    
+
     func `init`() -> Command<Message>? {
         nil
     }
-    
+
     func update(_ message: Message) -> (KeyBindingModel, Command<Message>?) {
         var model = self
-        
+
         switch message {
-        case .key(let key):
+        case let .key(key):
             // Check for mode-specific bindings first
             if let binding = model.keyMap.binding(for: key.description) {
                 if binding.enabled {
@@ -141,7 +136,8 @@ struct KeyBindingModel: Model, KeyBindable {
                     switch key.description {
                     case "?":
                         return model.update(.toggleHelp)
-                    case "ctrl+c", "q":
+                    case "ctrl+c",
+                         "q":
                         if model.selectedMode == .normal {
                             return model.update(.quit)
                         }
@@ -164,51 +160,50 @@ struct KeyBindingModel: Model, KeyBindable {
             } else {
                 model.lastAction = "Unbound key: \(key.description)"
             }
-            
-        case .action(let action):
+
+        case let .action(action):
             model.lastAction = action
-            
+
         case .toggleHelp:
             model.showHelp.toggle()
-            
-        case .switchMode(let mode):
+
+        case let .switchMode(mode):
             model.selectedMode = mode
             model.keyMap = Self.buildKeyMap(for: mode)
             model.lastAction = "Switched to \(mode.rawValue) mode"
-            
+
             // Update help component with new bindings
             model.helpComponent = Help(groups: model.keyMap.helpGroups())
             model.helpComponent.displayStyle = .full
-            model.helpComponent.showTitle = false  // We'll show our own title
-            
+            model.helpComponent.showTitle = false // We'll show our own title
+
         case .quit:
             return (model, quit())
         }
-        
+
         return (model, nil)
     }
-    
+
     func view() -> String {
         var view = ""
-        
+
         // Title and mode indicator
-        let modeStyle: Style
-        switch selectedMode {
+        let modeStyle = switch selectedMode {
         case .normal:
-            modeStyle = Style().bold().foreground(.brightGreen)
+            Style().bold().foreground(.brightGreen)
         case .edit:
-            modeStyle = Style().bold().foreground(.brightYellow)
+            Style().bold().foreground(.brightYellow)
         case .command:
-            modeStyle = Style().bold().foreground(.brightCyan)
+            Style().bold().foreground(.brightCyan)
         }
-        
+
         view += Style().bold().foreground(.brightMagenta).render("⌨️  KeyBinding System Demo") + "\n"
         view += "Mode: " + modeStyle.render("[\(selectedMode.rawValue)]") + "\n\n"
-        
+
         // Last action
         view += Style().bold().render("Last Action:") + " "
         view += Style().foreground(.brightBlue).render(lastAction) + "\n\n"
-        
+
         // Mode-specific content
         switch selectedMode {
         case .normal:
@@ -216,28 +211,28 @@ struct KeyBindingModel: Model, KeyBindable {
             view += Style().foreground(Color(240)).render("• Navigate with arrow keys or hjkl") + "\n"
             view += Style().foreground(Color(240)).render("• Press 'i' for Edit mode, ':' for Command mode") + "\n"
             view += Style().foreground(Color(240)).render("• Try various action keys (a, d, e, r, u)") + "\n"
-            
+
         case .edit:
             view += Style().foreground(.brightYellow).render("📝 Edit Mode Active") + "\n"
             view += Style().foreground(Color(240)).render("• Use Ctrl+A/E to move to start/end") + "\n"
             view += Style().foreground(Color(240)).render("• Use Ctrl+K/U to delete text") + "\n"
             view += Style().foreground(Color(240)).render("• Press ESC to return to Normal mode") + "\n"
-            
+
         case .command:
             view += Style().foreground(.brightCyan).render("⚡ Command Mode Active") + "\n"
             view += Style().foreground(Color(240)).render("• Type commands: w, q, wq, s, r, g") + "\n"
             view += Style().foreground(Color(240)).render("• Use Tab for autocomplete") + "\n"
             view += Style().foreground(Color(240)).render("• Press ESC to return to Normal mode") + "\n"
         }
-        
+
         view += "\n"
-        
+
         // Key binding status
         let totalBindings = keyMap.allBindings.count
-        let enabledBindings = keyMap.allBindings.filter { $0.enabled }.count
+        let enabledBindings = keyMap.allBindings.count(where: { $0.enabled })
         view += Style().foreground(Color(240)).render("Active Bindings: ") +
-                Style().bold().render("\(enabledBindings)/\(totalBindings)") + "\n\n"
-        
+            Style().bold().render("\(enabledBindings)/\(totalBindings)") + "\n\n"
+
         // Help section or prompt
         if showHelp {
             view += Style().bold().render("Key Bindings for \(selectedMode.rawValue) Mode:") + "\n"
@@ -245,27 +240,29 @@ struct KeyBindingModel: Model, KeyBindable {
             view += helpComponent.view() + "\n"
         } else {
             view += Style().foreground(Color(240)).render("Press ") +
-                    Style().bold().render("?") +
-                    Style().foreground(Color(240)).render(" to toggle help") + "\n"
+                Style().bold().render("?") +
+                Style().foreground(Color(240)).render(" to toggle help") + "\n"
         }
-        
+
         view += "\n"
         view += Style().foreground(Color(240)).render("Press ") +
-                Style().bold().render("Ctrl+C") +
-                Style().foreground(Color(240)).render(" or ") +
-                Style().bold().render("Q") +
-                Style().foreground(Color(240)).render(" (in Normal mode) to quit")
-        
+            Style().bold().render("Ctrl+C") +
+            Style().foreground(Color(240)).render(" or ") +
+            Style().bold().render("Q") +
+            Style().foreground(Color(240)).render(" (in Normal mode) to quit")
+
         return view
     }
 }
+
+// MARK: - KeyBindingExampleApp
 
 @main
 struct KeyBindingExampleApp {
     static func main() async throws {
         var options = ProgramOptions()
         options.useAltScreen = true
-        
+
         let program = Program(
             initialModel: KeyBindingModel(),
             options: options

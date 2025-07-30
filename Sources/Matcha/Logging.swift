@@ -1,11 +1,6 @@
-//
-//  Logging.swift
-//  Matcha
-//
-//  Logging utilities for Matcha TUI applications.
-//
-
 import Foundation
+
+// MARK: - LogOptionsSetter
 
 /// LogOptionsSetter is a protocol implemented by logging libraries.
 public protocol LogOptionsSetter {
@@ -33,53 +28,57 @@ public func LogToFileWith(_ path: String, prefix: String, logger: LogOptionsSett
     if !fileManager.fileExists(atPath: path) {
         fileManager.createFile(atPath: path, contents: nil, attributes: nil)
     }
-    
+
     // Open the file for appending
     guard let fileHandle = FileHandle(forWritingAtPath: path) else {
         throw LoggingError.failedToOpenFile(path)
     }
-    
+
     // Seek to end for appending
     fileHandle.seekToEndOfFile()
-    
+
     // Set up the logger
     logger.setOutput(FileHandleOutputStream(fileHandle: fileHandle))
-    
+
     // Add a space after the prefix if needed
     var finalPrefix = prefix
-    if !prefix.isEmpty && !prefix.hasSuffix(" ") {
+    if !prefix.isEmpty, !prefix.hasSuffix(" ") {
         finalPrefix += " "
     }
     logger.setPrefix(finalPrefix)
-    
+
     return fileHandle
 }
+
+// MARK: - StandardLogger
 
 /// Standard logger implementation
 public class StandardLogger: LogOptionsSetter {
     private var output: TextOutputStream = FileHandleOutputStream(fileHandle: .standardOutput)
     private var prefix: String = ""
-    
+
     public init() {}
-    
+
     public func setOutput(_ output: TextOutputStream) {
         self.output = output
     }
-    
+
     public func setPrefix(_ prefix: String) {
         self.prefix = prefix
     }
-    
+
     public func log(_ message: String) {
-        var stream = self.output
+        var stream = output
         stream.write("\(prefix)\(message)\n")
     }
 }
 
+// MARK: - FileHandleOutputStream
+
 /// TextOutputStream wrapper for FileHandle
 struct FileHandleOutputStream: TextOutputStream {
     let fileHandle: FileHandle
-    
+
     mutating func write(_ string: String) {
         if let data = string.data(using: .utf8) {
             fileHandle.write(data)
@@ -87,14 +86,16 @@ struct FileHandleOutputStream: TextOutputStream {
     }
 }
 
+// MARK: - LoggingError
+
 /// Logging-related errors
 public enum LoggingError: Error, LocalizedError {
     case failedToOpenFile(String)
-    
+
     public var errorDescription: String? {
         switch self {
-        case .failedToOpenFile(let path):
-            return "Failed to open file for logging: \(path)"
+        case let .failedToOpenFile(path):
+            "Failed to open file for logging: \(path)"
         }
     }
 }

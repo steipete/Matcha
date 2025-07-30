@@ -1,10 +1,3 @@
-//
-//  Core.swift
-//  Matcha
-//
-//  Core protocols and types for the Matcha TUI framework.
-//
-
 import Foundation
 
 // MARK: - Duration Extensions
@@ -12,7 +5,7 @@ import Foundation
 extension Duration {
     /// Convert Duration to TimeInterval (seconds)
     var timeInterval: TimeInterval {
-        let components = self.components
+        let components = components
         let seconds = Double(components.seconds)
         let attoseconds = Double(components.attoseconds) / 1e18
         return seconds + attoseconds
@@ -31,17 +24,17 @@ public typealias Msg = Message
 public struct Command<M: Message>: Sendable {
     /// The async operation that produces a message
     private let operation: @Sendable () async -> M?
-    
+
     /// Internal flag for batch commands
-    internal var isBatch: Bool = false
-    internal var batchCommands: [Command<M>] = []
-    
+    var isBatch: Bool = false
+    var batchCommands: [Command<M>] = []
+
     /// Internal flag for sequence commands
-    internal var isSequence: Bool = false
-    internal var sequenceCommands: [Command<M>] = []
-    
+    var isSequence: Bool = false
+    var sequenceCommands: [Command<M>] = []
+
     /// Internal flag for quit command
-    internal var isQuit: Bool = false
+    var isQuit: Bool = false
 
     /// Creates a new command from an async operation
     public init(operation: @escaping @Sendable () async -> M?) {
@@ -138,7 +131,7 @@ public struct BlurMsg: Message {
 /// Message sent when text is pasted (bracketed paste mode)
 public struct PasteMsg: Message {
     public let text: String
-    
+
     public init(text: String) {
         self.text = text
     }
@@ -282,17 +275,17 @@ public func Every<M: Message>(_ duration: Duration, _ fn: @escaping @Sendable (D
     Command { () async -> M? in
         let now = Date()
         let interval = duration.timeInterval
-        
+
         // Calculate next aligned time
         let timeSinceEpoch = now.timeIntervalSince1970
         let nextAligned = ceil(timeSinceEpoch / interval) * interval
         let delay = nextAligned - timeSinceEpoch
-        
+
         // Sleep until the next aligned time
         if delay > 0 {
             try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
         }
-        
+
         return fn(Date())
     }
 }
@@ -621,7 +614,6 @@ public func disableBracketedPaste<M: Message>() -> Command<M> {
     }
 }
 
-
 // MARK: - Batch Command
 
 /// Batch performs a bunch of commands concurrently with no ordering guarantees
@@ -633,9 +625,9 @@ public func disableBracketedPaste<M: Message>() -> Command<M> {
 ///         return Batch(someCommand, someOtherCommand)
 ///     }
 public func Batch<M: Message>(_ cmds: Command<M>...) -> Command<M> {
-    let validCmds = cmds.filter { cmd in
+    let validCmds = cmds.filter { _ in
         // Filter out nil operations
-        return true
+        true
     }
     switch validCmds.count {
     case 0:
@@ -643,17 +635,18 @@ public func Batch<M: Message>(_ cmds: Command<M>...) -> Command<M> {
     case 1:
         return validCmds[0]
     default:
-        return Command { () async -> M? in
-            BatchMsg(validCmds) as? M
-        }
+        var batchCmd = Command<M> { nil }
+        batchCmd.isBatch = true
+        batchCmd.batchCommands = validCmds
+        return batchCmd
     }
 }
 
 /// Batch performs a bunch of commands concurrently with no ordering guarantees
 public func Batch<M: Message>(_ cmds: [Command<M>]) -> Command<M> {
-    let validCmds = cmds.filter { cmd in
+    let validCmds = cmds.filter { _ in
         // Filter out nil operations
-        return true
+        true
     }
     switch validCmds.count {
     case 0:
@@ -661,9 +654,10 @@ public func Batch<M: Message>(_ cmds: [Command<M>]) -> Command<M> {
     case 1:
         return validCmds[0]
     default:
-        return Command { () async -> M? in
-            BatchMsg(validCmds) as? M
-        }
+        var batchCmd = Command<M> { nil }
+        batchCmd.isBatch = true
+        batchCmd.batchCommands = validCmds
+        return batchCmd
     }
 }
 
@@ -683,16 +677,18 @@ public func batch<M: Message>(_ commands: Command<M>...) -> Command<M> {
 /// Sequence runs the given commands one at a time, in order. Contrast this with
 /// Batch, which runs commands concurrently.
 public func Sequence<M: Message>(_ cmds: Command<M>...) -> Command<M> {
-    return Command { () async -> M? in
-        SequenceMsg(cmds) as? M
-    }
+    var seqCmd = Command<M> { nil }
+    seqCmd.isSequence = true
+    seqCmd.sequenceCommands = cmds
+    return seqCmd
 }
 
 /// Sequence runs the given commands one at a time, in order.
 public func Sequence<M: Message>(_ cmds: [Command<M>]) -> Command<M> {
-    return Command { () async -> M? in
-        SequenceMsg(cmds) as? M
-    }
+    var seqCmd = Command<M> { nil }
+    seqCmd.isSequence = true
+    seqCmd.sequenceCommands = cmds
+    return seqCmd
 }
 
 /// Sequentially produces a command that sequentially executes the given
@@ -726,7 +722,7 @@ public func Sequentially<M: Message>(_ cmds: Command<M>...) -> Command<M> {
 /// Message to print a line to the terminal
 public struct PrintLineMsg: Message {
     public let text: String
-    
+
     public init(text: String) {
         self.text = text
     }
@@ -735,7 +731,7 @@ public struct PrintLineMsg: Message {
 /// Message to print formatted text to the terminal
 public struct PrintFormattedMsg: Message {
     public let text: String
-    
+
     public init(text: String) {
         self.text = text
     }
@@ -748,7 +744,7 @@ public struct PrintFormattedMsg: Message {
 public func Println<M: Message>(_ items: Any...) -> Command<M> {
     // Convert items to string immediately to avoid capture issues
     let output = items.map { String(describing: $0) }.joined(separator: " ")
-    
+
     return Command { () async -> M? in
         PrintLineMsg(text: output) as? M
     }
@@ -758,7 +754,7 @@ public func Println<M: Message>(_ items: Any...) -> Command<M> {
 public func println<M: Message>(_ items: Any...) -> Command<M> {
     // Convert items to string immediately to avoid capture issues
     let output = items.map { String(describing: $0) }.joined(separator: " ")
-    
+
     return Command { () async -> M? in
         PrintLineMsg(text: output) as? M
     }
@@ -772,7 +768,7 @@ public func println<M: Message>(_ items: Any...) -> Command<M> {
 public func Printf<M: Message>(_ format: String, _ args: CVarArg...) -> Command<M> {
     // Format the string immediately to avoid capture issues
     let formattedString = String(format: format, arguments: args)
-    
+
     return Command { () async -> M? in
         PrintFormattedMsg(text: formattedString) as? M
     }
@@ -782,7 +778,7 @@ public func Printf<M: Message>(_ format: String, _ args: CVarArg...) -> Command<
 public func printf<M: Message>(_ format: String, _ args: CVarArg...) -> Command<M> {
     // Format the string immediately to avoid capture issues
     let formattedString = String(format: format, arguments: args)
-    
+
     return Command { () async -> M? in
         PrintFormattedMsg(text: formattedString) as? M
     }
@@ -794,7 +790,7 @@ public func printf<M: Message>(_ format: String, _ args: CVarArg...) -> Command<
 /// no ordering guarantees. You can send a BatchMsg with Batch.
 public struct BatchMsg<M: Message>: Message {
     public let commands: [Command<M>]
-    
+
     public init(_ commands: [Command<M>]) {
         self.commands = commands
     }
@@ -805,7 +801,7 @@ public struct BatchMsg<M: Message>: Message {
 /// sequenceMsg is used internally to run the given commands in order.
 public struct SequenceMsg<M: Message>: Message {
     public let commands: [Command<M>]
-    
+
     public init(_ commands: [Command<M>]) {
         self.commands = commands
     }

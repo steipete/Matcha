@@ -1,12 +1,7 @@
-//
-//  main.swift
-//  Alt Screen Example
-//
-//  Demonstrates alternate screen buffer usage in Matcha.
-//
-
 import Foundation
 import Matcha
+
+// MARK: - AltScreenModel
 
 // Model that demonstrates alternate screen functionality
 public struct AltScreenModel: Model {
@@ -56,9 +51,12 @@ public struct AltScreenModel: Model {
 
         case let .key(key):
             switch key.description {
-            case "a", " ", "space":
+            case " ",
+                 "a",
+                 "space":
                 return update(.toggleScreen)
-            case "i", "+":
+            case "+",
+                 "i":
                 return update(.increment)
             case "c":
                 // Clear screen command
@@ -119,6 +117,8 @@ public struct AltScreenModel: Model {
     }
 }
 
+// MARK: - AltScreenApp
+
 // Main entry point
 @main
 enum AltScreenApp {
@@ -129,7 +129,8 @@ enum AltScreenApp {
         options.filter = { _, message in
             if let key = message as? KeyMsg {
                 switch key.description {
-                case "q", "ctrl+c":
+                case "ctrl+c",
+                     "q":
                     return QuitMsg()
                 default:
                     return AltScreenModel.Message.key(key)

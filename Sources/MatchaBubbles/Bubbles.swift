@@ -1,10 +1,3 @@
-//
-//  Bubbles.swift
-//  MatchaBubbles
-//
-//  Component library for Matcha (Bubbles equivalent).
-//
-
 import Foundation
 import Matcha
 

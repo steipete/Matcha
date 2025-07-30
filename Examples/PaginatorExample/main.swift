@@ -3,62 +3,62 @@ import Matcha
 import MatchaBubbles
 import MatchaStyle
 
-// MARK: - Model
+// MARK: - PaginatorModel
 
 public struct PaginatorModel: Model {
     var paginator: Paginator
     var items: [String] = []
     var itemsPerPage: Int = 10
     var displayStyle: Paginator.DisplayStyle = .dots
-    
+
     // Define messages this model can handle
     public enum Message: Matcha.Message {
         case key(KeyMsg)
         case changeStyle
         case changeItemsPerPage(delta: Int)
     }
-    
+
     public init() {
         // Generate sample items
         for i in 1...100 {
             items.append("Item #\(i): Sample content for item number \(i)")
         }
-        
+
         // Create paginator
-        paginator = Paginator(
+        self.paginator = Paginator(
             totalItems: items.count,
             itemsPerPage: itemsPerPage,
             currentPage: 0
         )
         paginator.displayStyle = displayStyle
     }
-    
+
     public func `init`() -> Command<Message>? {
         nil
     }
-    
+
     public func update(_ message: Message) -> (PaginatorModel, Command<Message>?) {
         var model = self
-        
+
         switch message {
-        case .key(let key):
+        case let .key(key):
             switch key.type {
             case .left:
                 model.paginator.previousPage()
                 return (model, nil)
-                
+
             case .right:
                 model.paginator.nextPage()
                 return (model, nil)
-                
+
             case .home:
                 model.paginator.goToPage(0)
                 return (model, nil)
-                
+
             case .end:
                 model.paginator.goToPage(model.paginator.totalPages - 1)
                 return (model, nil)
-                
+
             default:
                 switch key.description {
                 case "h":
@@ -88,7 +88,7 @@ public struct PaginatorModel: Model {
                     return (model, nil)
                 }
             }
-            
+
         case .changeStyle:
             // Cycle through display styles
             switch model.paginator.displayStyle {
@@ -101,8 +101,8 @@ public struct PaginatorModel: Model {
             }
             model.displayStyle = model.paginator.displayStyle
             return (model, nil)
-            
-        case .changeItemsPerPage(let delta):
+
+        case let .changeItemsPerPage(delta):
             // Change items per page
             let newCount = max(5, min(50, model.itemsPerPage + delta))
             model.itemsPerPage = newCount
@@ -115,59 +115,59 @@ public struct PaginatorModel: Model {
             return (model, nil)
         }
     }
-    
+
     public func view() -> String {
         var lines: [String] = []
         let style = Style()
-        
+
         // Title
         lines.append(style.bold().render("Paginator Example"))
         lines.append("")
-        
+
         // Info
         let pageInfo = "Page \(paginator.currentPage + 1) of \(paginator.totalPages)"
         let itemsInfo = "\(itemsPerPage) items per page"
         lines.append(style.foreground(.cyan).render("\(pageInfo) • \(itemsInfo)"))
         lines.append("")
-        
+
         // Display current page items
         lines.append(style.underline().render("Current Page Items:"))
         lines.append("")
-        
+
         let startIdx = paginator.currentPage * paginator.itemsPerPage
         let endIdx = min(startIdx + paginator.itemsPerPage, items.count)
-        
+
         for i in startIdx..<endIdx {
             let item = items[i]
             lines.append("  \(style.foreground(.brightBlack).render(item))")
         }
-        
+
         lines.append("")
-        
+
         // Paginator
         lines.append(paginator.view())
         lines.append("")
-        
+
         // Style examples
         lines.append(style.underline().render("Display Styles:"))
-        
+
         // Dots style
         var dotsPaginator = paginator
         dotsPaginator.displayStyle = .dots
         lines.append("Dots:     \(dotsPaginator.view())")
-        
+
         // Numbers style
         var numbersPaginator = paginator
         numbersPaginator.displayStyle = .numbers
         lines.append("Numbers:  \(numbersPaginator.view())")
-        
+
         // Compact style
         var compactPaginator = paginator
         compactPaginator.displayStyle = .compact
         lines.append("Compact:  \(compactPaginator.view())")
-        
+
         lines.append("")
-        
+
         // Controls
         lines.append(style.faint().render("Controls:"))
         lines.append(style.faint().render("  ←/h       - Previous page"))
@@ -178,34 +178,35 @@ public struct PaginatorModel: Model {
         lines.append(style.faint().render("  s         - Change style"))
         lines.append(style.faint().render("  +/-       - Change items per page"))
         lines.append(style.faint().render("  q         - Quit"))
-        
+
         return lines.joined(separator: "\n")
     }
 }
 
-// MARK: - Main
+// MARK: - PaginatorApp
 
 @main
 enum PaginatorApp {
     static func main() async throws {
         var options = ProgramOptions()
         options.useAltScreen = true
-        
+
         // Add a filter to convert messages
         options.filter = { _, message in
             switch message {
             case let key as KeyMsg:
                 switch key.description {
-                case "q", "ctrl+c":
-                    return QuitMsg()
+                case "ctrl+c",
+                     "q":
+                    QuitMsg()
                 default:
-                    return PaginatorModel.Message.key(key)
+                    PaginatorModel.Message.key(key)
                 }
             default:
-                return message
+                message
             }
         }
-        
+
         let program = Program(initialModel: PaginatorModel(), options: options)
         _ = try await program.run()
     }

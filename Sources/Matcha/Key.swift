@@ -1,35 +1,30 @@
-//
-//  Key.swift
-//  Matcha
-//
-//  Keyboard input handling for the Matcha TUI framework.
-//
-
 import Foundation
+
+// MARK: - KeyMsg
 
 /// KeyMsg contains information about a keypress. KeyMsgs are always sent to
 /// the program's update function.
 public struct KeyMsg: Message, Equatable, Sendable {
     /// The type of key that was pressed
     public let type: KeyType
-    
+
     /// The characters associated with this key press (for regular character input)
     /// Note: This will always contain at least one character for KeyRunes type
     public let runes: [Character]
-    
+
     /// Whether the Alt/Option key was held during this key press
     public let alt: Bool
-    
+
     /// Whether this key press is part of a paste operation
     public let paste: Bool
-    
+
     public init(type: KeyType, runes: [Character] = [], alt: Bool = false, paste: Bool = false) {
         self.type = type
         self.runes = runes
         self.alt = alt
         self.paste = paste
     }
-    
+
     /// Convenience initializer for character keys
     public init(character: Character, alt: Bool = false, paste: Bool = false) {
         self.type = .runes
@@ -37,7 +32,7 @@ public struct KeyMsg: Message, Equatable, Sendable {
         self.alt = alt
         self.paste = paste
     }
-    
+
     /// Convenience initializer for string input
     public init(string: String, alt: Bool = false, paste: Bool = false) {
         self.type = .runes
@@ -47,7 +42,7 @@ public struct KeyMsg: Message, Equatable, Sendable {
     }
 }
 
-// MARK: - String Representation
+// MARK: CustomStringConvertible
 
 extension KeyMsg: CustomStringConvertible {
     /// Returns a friendly string representation for a key message. It's safe (and
@@ -57,20 +52,22 @@ extension KeyMsg: CustomStringConvertible {
     }
 }
 
+// MARK: - Key
+
 /// Key contains information about a keypress.
 public struct Key: Equatable, Sendable {
     public let type: KeyType
     public let runes: [Character]
     public let alt: Bool
     public let paste: Bool
-    
+
     public init(_ msg: KeyMsg) {
         self.type = msg.type
         self.runes = msg.runes
         self.alt = msg.alt
         self.paste = msg.paste
     }
-    
+
     public init(type: KeyType, runes: [Character] = [], alt: Bool = false, paste: Bool = false) {
         self.type = type
         self.runes = runes
@@ -79,16 +76,18 @@ public struct Key: Equatable, Sendable {
     }
 }
 
+// MARK: CustomStringConvertible
+
 extension Key: CustomStringConvertible {
     /// Returns a friendly string representation for a key. It's safe (and
     /// encouraged) for use in key comparison.
     public var description: String {
         var result = ""
-        
+
         if alt {
             result += "alt+"
         }
-        
+
         if type == .runes {
             if paste {
                 // Note: bubbles/keys bindings currently do string compares to
@@ -108,10 +107,12 @@ extension Key: CustomStringConvertible {
             result += name
             return result
         }
-        
+
         return ""
     }
 }
+
+// MARK: - KeyType
 
 /// KeyType indicates the key pressed, such as KeyEnter or KeyBreak or KeyCtrlC.
 /// All other keys will be type KeyRunes. To get the rune value, check the Rune
@@ -122,50 +123,50 @@ public enum KeyType: Int, Sendable, Equatable {
     //
     // See also:
     // https://en.wikipedia.org/wiki/C0_and_C1_control_codes
-    case null = 0       // null, \0
-    case ctrlA = 1      // start of heading
-    case ctrlB = 2      // start of text
-    case ctrlC = 3      // break, ctrl+c
-    case ctrlD = 4      // end of transmission
-    case ctrlE = 5      // enquiry
-    case ctrlF = 6      // acknowledge
-    case ctrlG = 7      // bell, \a
-    case ctrlH = 8      // backspace (also mapped to backspace)
-    case ctrlI = 9      // horizontal tabulation, \t (also mapped to tab)
-    case ctrlJ = 10     // line feed, \n (also mapped to enter)
-    case ctrlK = 11     // vertical tabulation \v
-    case ctrlL = 12     // form feed \f
-    case ctrlM = 13     // carriage return, \r
-    case ctrlN = 14     // shift out
-    case ctrlO = 15     // shift in
-    case ctrlP = 16     // data link escape
-    case ctrlQ = 17     // device control one
-    case ctrlR = 18     // device control two
-    case ctrlS = 19     // device control three
-    case ctrlT = 20     // device control four
-    case ctrlU = 21     // negative acknowledge
-    case ctrlV = 22     // synchronous idle
-    case ctrlW = 23     // end of transmission block
-    case ctrlX = 24     // cancel
-    case ctrlY = 25     // end of medium
-    case ctrlZ = 26     // substitution
-    case ctrlOpenBracket = 27  // escape, \e (also mapped to escape)
-    case ctrlBackslash = 28    // file separator
+    case null = 0 // null, \0
+    case ctrlA = 1 // start of heading
+    case ctrlB = 2 // start of text
+    case ctrlC = 3 // break, ctrl+c
+    case ctrlD = 4 // end of transmission
+    case ctrlE = 5 // enquiry
+    case ctrlF = 6 // acknowledge
+    case ctrlG = 7 // bell, \a
+    case ctrlH = 8 // backspace (also mapped to backspace)
+    case ctrlI = 9 // horizontal tabulation, \t (also mapped to tab)
+    case ctrlJ = 10 // line feed, \n (also mapped to enter)
+    case ctrlK = 11 // vertical tabulation \v
+    case ctrlL = 12 // form feed \f
+    case ctrlM = 13 // carriage return, \r
+    case ctrlN = 14 // shift out
+    case ctrlO = 15 // shift in
+    case ctrlP = 16 // data link escape
+    case ctrlQ = 17 // device control one
+    case ctrlR = 18 // device control two
+    case ctrlS = 19 // device control three
+    case ctrlT = 20 // device control four
+    case ctrlU = 21 // negative acknowledge
+    case ctrlV = 22 // synchronous idle
+    case ctrlW = 23 // end of transmission block
+    case ctrlX = 24 // cancel
+    case ctrlY = 25 // end of medium
+    case ctrlZ = 26 // substitution
+    case ctrlOpenBracket = 27 // escape, \e (also mapped to escape)
+    case ctrlBackslash = 28 // file separator
     case ctrlCloseBracket = 29 // group separator
-    case ctrlCaret = 30        // record separator
-    case ctrlUnderscore = 31   // unit separator
-    case space = 32            // space
-    case delete = 127          // delete
-    
+    case ctrlCaret = 30 // record separator
+    case ctrlUnderscore = 31 // unit separator
+    case space = 32 // space
+    case delete = 127 // delete
+
     // Extended keys (starting from 256 to avoid conflicts)
     case runes = 256
-    
+
     // Common keys (semantic aliases for control sequences)
-    case backspace = 257   // commonly ctrl+h
-    case tab = 258         // commonly ctrl+i
-    case enter = 259       // commonly ctrl+j or ctrl+m
-    case escape = 260      // commonly ctrl+[
-    
+    case backspace = 257 // commonly ctrl+h
+    case tab = 258 // commonly ctrl+i
+    case enter = 259 // commonly ctrl+j or ctrl+m
+    case escape = 260 // commonly ctrl+[
+
     // Navigation keys
     case up = 261
     case down = 262
@@ -175,10 +176,10 @@ public enum KeyType: Int, Sendable, Equatable {
     case end = 266
     case pageUp = 267
     case pageDown = 268
-    
+
     // Editing keys
     case insert = 269
-    
+
     // Function keys
     case f1 = 270
     case f2 = 271
@@ -200,7 +201,7 @@ public enum KeyType: Int, Sendable, Equatable {
     case f18 = 287
     case f19 = 288
     case f20 = 289
-    
+
     // Special keys with modifiers
     case shiftTab = 290
     case shiftUp = 291
@@ -209,7 +210,7 @@ public enum KeyType: Int, Sendable, Equatable {
     case shiftLeft = 294
     case shiftHome = 295
     case shiftEnd = 296
-    
+
     case ctrlUp = 297
     case ctrlDown = 298
     case ctrlRight = 299
@@ -218,12 +219,12 @@ public enum KeyType: Int, Sendable, Equatable {
     case ctrlEnd = 302
     case ctrlPageUp = 303
     case ctrlPageDown = 304
-    
+
     case altUp = 305
     case altDown = 306
     case altRight = 307
     case altLeft = 308
-    
+
     // Media keys
     case mediaPlayPause = 309
     case mediaStop = 310
@@ -271,13 +272,13 @@ private let keyNames: [KeyType: String] = [
     .ctrlUnderscore: "ctrl+_",
     .space: "space",
     .delete: "delete",
-    
+
     // Common keys
     .backspace: "backspace",
     .tab: "tab",
     .enter: "enter",
     .escape: "esc",
-    
+
     // Navigation
     .up: "up",
     .down: "down",
@@ -288,7 +289,7 @@ private let keyNames: [KeyType: String] = [
     .pageUp: "pgup",
     .pageDown: "pgdown",
     .insert: "insert",
-    
+
     // Function keys
     .f1: "f1",
     .f2: "f2",
@@ -310,7 +311,7 @@ private let keyNames: [KeyType: String] = [
     .f18: "f18",
     .f19: "f19",
     .f20: "f20",
-    
+
     // Modified keys
     .shiftTab: "shift+tab",
     .shiftUp: "shift+up",
@@ -319,7 +320,7 @@ private let keyNames: [KeyType: String] = [
     .shiftLeft: "shift+left",
     .shiftHome: "shift+home",
     .shiftEnd: "shift+end",
-    
+
     .ctrlUp: "ctrl+up",
     .ctrlDown: "ctrl+down",
     .ctrlRight: "ctrl+right",
@@ -328,19 +329,19 @@ private let keyNames: [KeyType: String] = [
     .ctrlEnd: "ctrl+end",
     .ctrlPageUp: "ctrl+pgup",
     .ctrlPageDown: "ctrl+pgdown",
-    
+
     .altUp: "alt+up",
     .altDown: "alt+down",
     .altRight: "alt+right",
     .altLeft: "alt+left",
-    
+
     // Media keys
     .mediaPlayPause: "media play/pause",
     .mediaStop: "media stop",
     .mediaNext: "media next",
     .mediaPrev: "media previous",
     .mediaRewind: "media rewind",
-    .mediaFastForward: "media fast-forward"
+    .mediaFastForward: "media fast-forward",
 ]
 
 // MARK: - Pattern Matching Support
@@ -431,7 +432,7 @@ public struct UnknownCSISequenceMsg: Message {
 /// Message for unknown DCS sequences that couldn't be parsed
 public struct UnknownDCSSequenceMsg: Message {
     public let bytes: [UInt8]
-    
+
     public init(bytes: [UInt8]) {
         self.bytes = bytes
     }

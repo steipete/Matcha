@@ -1,11 +1,6 @@
-//
-//  Renderer.swift
-//  Matcha
-//
-//  Rendering system for terminal output.
-//
-
 import Foundation
+
+// MARK: - Renderer
 
 /// Protocol for terminal renderers
 public protocol Renderer: Actor {
@@ -86,37 +81,39 @@ public protocol Renderer: Actor {
 
     /// Resets the count of rendered lines
     func resetLinesRendered() async
-    
+
     /// Synchronizes the scroll area with the given lines
     func syncScrollArea(lines: [String], topBoundary: Int, bottomBoundary: Int) async
-    
+
     /// Scrolls up by adding new lines at the top
     func scrollUp(newLines: [String], topBoundary: Int, bottomBoundary: Int) async
-    
+
     /// Scrolls down by adding new lines at the bottom
     func scrollDown(newLines: [String], topBoundary: Int, bottomBoundary: Int) async
-    
+
     /// Clears the scroll area
     func clearScrollArea() async
-    
+
     /// Sets line ranges that should be ignored during diff calculations
     func setIgnoredLineRanges(_ ranges: [Range<Int>]) async
-    
+
     /// Sets patterns that identify lines to ignore during diff calculations
     func setIgnoredLinePatterns(_ patterns: [String]) async
-    
+
     /// Clears all ignored line configuration
     func clearIgnoredLines() async
-    
+
     /// Updates the terminal dimensions
     func setTerminalSize(width: Int, height: Int) async
-    
+
     /// Returns the current terminal dimensions
     var terminalSize: (width: Int, height: Int) { get async }
-    
+
     /// Queues a message line to be printed (for PrintLineMsg support)
     func queueMessageLine(_ line: String) async
 }
+
+// MARK: - StandardRenderer
 
 /// Standard frame-based renderer
 public actor StandardRenderer: Renderer {
@@ -128,7 +125,7 @@ public actor StandardRenderer: Renderer {
     private var buffer: String = ""
     private var lastRenderedLines: [String] = []
     private var isRunning = false
-    
+
     // Performance optimization
     private var pendingUpdates: [LineUpdate] = []
     private var renderCoalesceTimer: Task<Void, Never>?
@@ -142,20 +139,20 @@ public actor StandardRenderer: Renderer {
     public private(set) var reportsFocus = false
     private var cursorHidden = false
     private var mouseMode: MouseMode = .disabled
-    
+
     // Terminal dimensions
     private var terminalWidth: Int = 80
     private var terminalHeight: Int = 24
-    
+
     // Message queue for PrintLineMsg handling
     private var queuedMessageLines: [String] = []
-    
+
     // Ignored lines configuration
     private var ignoredLineRanges: [Range<Int>] = []
     private var ignoredLinePatterns: [String] = []
-    
+
     // MARK: - Line Update Tracking
-    
+
     private struct LineUpdate {
         let index: Int
         let content: String
@@ -177,15 +174,16 @@ public actor StandardRenderer: Renderer {
 
         // Hide cursor initially
         await hideCursor()
-        
+
         // Enable bracketed paste by default (matching Bubbletea)
         await enableBracketedPaste()
-        
+
         // Query terminal size at startup - only if we have a real terminal
         // Skip in test environments
         if let outputStream = output as? FileHandle,
            outputStream === FileHandle.standardOutput,
-           let size = try? Terminal.current.getSize() {
+           let size = try? Terminal.current.getSize()
+        {
             terminalWidth = size.columns
             terminalHeight = size.rows
         }
@@ -208,11 +206,11 @@ public actor StandardRenderer: Renderer {
         // Cleanup sequence
         await disableBracketedPaste()
         await showCursor()
-        
+
         // Disable all mouse modes
-        await writeANSI("?1002l")  // Disable cell motion
-        await writeANSI("?1003l")  // Disable all motion  
-        await writeANSI("?1006l")  // Disable SGR mode
+        await writeANSI("?1002l") // Disable cell motion
+        await writeANSI("?1003l") // Disable all motion
+        await writeANSI("?1006l") // Disable SGR mode
         mouseMode = .disabled
     }
 
@@ -222,7 +220,7 @@ public actor StandardRenderer: Renderer {
 
     public func write(_ content: String) async {
         buffer = content
-        
+
         // Coalesce rapid updates
         renderCoalesceTimer?.cancel()
         renderCoalesceTimer = Task {
@@ -250,10 +248,10 @@ public actor StandardRenderer: Renderer {
     public func enterAltScreen() async {
         guard !altScreenActive else { return }
         await writeANSI("?1049h") // Enter alternate screen
-        await writeANSI("2J")     // Clear screen
-        await writeANSI("H")      // Cursor home
+        await writeANSI("2J") // Clear screen
+        await writeANSI("H") // Cursor home
         altScreenActive = true
-        
+
         // Restore cursor visibility state
         if cursorHidden {
             await writeANSI("?25l")
@@ -266,7 +264,7 @@ public actor StandardRenderer: Renderer {
         guard altScreenActive else { return }
         await writeANSI("?1049l") // Exit alternate screen
         altScreenActive = false
-        
+
         // Restore cursor visibility state
         if cursorHidden {
             await writeANSI("?25l")
@@ -354,142 +352,142 @@ public actor StandardRenderer: Renderer {
     public func resetLinesRendered() async {
         lastRenderedLines = []
     }
-    
+
     public func syncScrollArea(lines: [String], topBoundary: Int, bottomBoundary: Int) async {
         // Implementation matching Bubble Tea's syncScrollAreaMsg handler
         // This sets up ignored lines and uses insertTop approach
-        
+
         // Clear any existing ignored lines configuration
         await clearIgnoredLines()
-        
+
         // Set the scroll area as ignored lines (lines that won't be touched by normal rendering)
         var ranges: [Range<Int>] = []
         if topBoundary < bottomBoundary {
             // Convert 1-based boundaries to 0-based range
-            ranges.append((topBoundary - 1)..<(bottomBoundary))
+            ranges.append((topBoundary - 1)..<bottomBoundary)
         }
         await setIgnoredLineRanges(ranges)
-        
+
         // Now insert the content at the top of the scroll area
         // This matches Bubble Tea's approach
         var output = output
-        
+
         // Set scroll region
         output.write("\u{1B}[\(topBoundary);\(bottomBoundary)r")
-        
+
         // Move cursor to top of scroll area
         output.write("\u{1B}[\(topBoundary);1H")
-        
+
         // Insert lines - this will set up the initial content
         output.write("\u{1B}[\(lines.count)L")
-        
+
         // Write the lines
         output.write(lines.joined(separator: "\r\n"))
-        
+
         // Reset scroll region
         output.write("\u{1B}[0;\(terminalHeight)r")
-        
+
         // Move cursor back to where rendering expects it
         let lastLine = min(lastRenderedLines.count, terminalHeight)
         output.write("\u{1B}[\(lastLine);1H")
     }
-    
+
     public func scrollUp(newLines: [String], topBoundary: Int, bottomBoundary: Int) async {
         // Implementation matching Bubble Tea's insertTop
         var output = output
-        
+
         // Set scroll region (DECSTBM)
         output.write("\u{1B}[\(topBoundary);\(bottomBoundary)r")
-        
+
         // Move cursor to top of scroll area
         output.write("\u{1B}[\(topBoundary);1H")
-        
+
         // Insert lines (IL) - this pushes existing content down
         output.write("\u{1B}[\(newLines.count)L")
-        
+
         // Write the new lines
         output.write(newLines.joined(separator: "\r\n"))
-        
+
         // Reset scroll region to full terminal height
         output.write("\u{1B}[0;\(terminalHeight)r")
-        
+
         // Move cursor back to where rendering expects it
         let lastLine = min(lastRenderedLines.count, terminalHeight)
         output.write("\u{1B}[\(lastLine);1H")
     }
-    
+
     public func scrollDown(newLines: [String], topBoundary: Int, bottomBoundary: Int) async {
         // Implementation matching Bubble Tea's insertBottom
         var output = output
-        
+
         // Set scroll region (DECSTBM)
         output.write("\u{1B}[\(topBoundary);\(bottomBoundary)r")
-        
+
         // Move cursor to bottom of scroll area
         output.write("\u{1B}[\(bottomBoundary);1H")
-        
+
         // Write newline followed by content - this scrolls existing content up
         output.write("\r\n" + newLines.joined(separator: "\r\n"))
-        
+
         // Reset scroll region to full terminal height
         output.write("\u{1B}[0;\(terminalHeight)r")
-        
+
         // Move cursor back to where rendering expects it
         let lastLine = min(lastRenderedLines.count, terminalHeight)
         output.write("\u{1B}[\(lastLine);1H")
     }
-    
+
     public func clearScrollArea() async {
         // Clear any scroll area settings
         // Reset scroll region to full screen
         await writeANSI("r")
     }
-    
+
     // MARK: - Ignored Lines Configuration
-    
+
     /// Sets line ranges that should be ignored during diff calculations
     /// Lines in these ranges won't trigger re-renders when they change
     public func setIgnoredLineRanges(_ ranges: [Range<Int>]) async {
         ignoredLineRanges = ranges
     }
-    
+
     /// Sets patterns that identify lines to ignore during diff calculations
     /// Lines containing these patterns won't trigger re-renders when they change
     public func setIgnoredLinePatterns(_ patterns: [String]) async {
         ignoredLinePatterns = patterns
     }
-    
+
     /// Clears all ignored line configuration
     public func clearIgnoredLines() async {
         ignoredLineRanges = []
         ignoredLinePatterns = []
     }
-    
+
     // MARK: - Terminal Size Management
-    
+
     /// Updates the terminal dimensions
     public func setTerminalSize(width: Int, height: Int) async {
         terminalWidth = width
         terminalHeight = height
     }
-    
+
     /// Returns the current terminal dimensions
     public var terminalSize: (width: Int, height: Int) {
         get async {
             (width: terminalWidth, height: terminalHeight)
         }
     }
-    
+
     // MARK: - Message Queue Handling
-    
+
     /// Queues a message line to be printed (for PrintLineMsg support)
     public func queueMessageLine(_ line: String) async {
         guard !altScreenActive else { return }
-        
+
         let lines = line.split(separator: "\n", omittingEmptySubsequences: false)
             .map { String($0) }
         queuedMessageLines.append(contentsOf: lines)
-        
+
         // Trigger a repaint to flush queued messages
         await repaint()
     }
@@ -499,25 +497,25 @@ public actor StandardRenderer: Renderer {
     private func flush() async {
         // Check if we need to flush queued messages
         let hasQueuedMessages = !queuedMessageLines.isEmpty && !altScreenActive
-        
+
         guard !buffer.isEmpty || hasQueuedMessages else { return }
 
         var output = output
-        
+
         // Flush queued message lines first (only in non-alt screen mode)
         if hasQueuedMessages {
             for line in queuedMessageLines {
                 var lineToWrite = line
-                
+
                 // Add erase line right if line is shorter than terminal width
                 if line.count < terminalWidth {
                     lineToWrite += "\u{1B}[K" // Erase to end of line
                 }
-                
+
                 output.write(lineToWrite)
                 output.write("\r\n")
             }
-            
+
             // Clear the queue
             queuedMessageLines = []
         }
@@ -528,7 +526,7 @@ public actor StandardRenderer: Renderer {
                 .map { String($0) }
 
             // Perform minimal redraws using line-by-line diffing
-            if altScreenActive && !lastRenderedLines.isEmpty && !hasQueuedMessages {
+            if altScreenActive, !lastRenderedLines.isEmpty, !hasQueuedMessages {
                 await performDiffRender(newLines: newLines)
             } else {
                 // Full redraw for initial render, non-alt screen, or when messages were queued
@@ -536,7 +534,7 @@ public actor StandardRenderer: Renderer {
                     await writeANSI("H") // Home cursor
                     await writeANSI("J") // Clear from cursor to end of screen
                 }
-                
+
                 // Limit rendering to terminal height
                 let linesToRender = min(newLines.count, terminalHeight)
                 for i in 0..<linesToRender {
@@ -545,7 +543,7 @@ public actor StandardRenderer: Renderer {
                         output.write("\n")
                     }
                 }
-                
+
                 // Clear any remaining lines from previous render
                 if lastRenderedLines.count > linesToRender {
                     for _ in linesToRender..<min(lastRenderedLines.count, terminalHeight) {
@@ -555,55 +553,57 @@ public actor StandardRenderer: Renderer {
             }
 
             // Recycle old line array to buffer pool if possible
-            if bufferPool.count < maxPoolSize && !lastRenderedLines.isEmpty {
+            if bufferPool.count < maxPoolSize, !lastRenderedLines.isEmpty {
                 bufferPool.append(lastRenderedLines)
             }
-            
+
             lastRenderedLines = newLines
             buffer = ""
         }
     }
-    
+
     private func performDiffRender(newLines: [String]) async {
         var output = output
         let maxLines = max(lastRenderedLines.count, newLines.count)
-        
+
         // Limit rendering to terminal height to avoid rendering beyond visible area
         let renderLines = min(maxLines, terminalHeight)
-        
+
         // Batch updates for better performance
         var updateBatch = ""
-        
+
         for i in 0..<renderLines {
             let oldLine = i < lastRenderedLines.count ? lastRenderedLines[i] : ""
             let newLine = i < newLines.count ? newLines[i] : ""
-            
+
             // Check if this line should be ignored
             let isIgnored = isLineIgnored(lineIndex: i, content: newLine)
-            
+
             // Skip unchanged lines or ignored lines that changed
-            if oldLine == newLine && i < newLines.count {
+            if oldLine == newLine, i < newLines.count {
                 continue
             }
-            
+
             // If the line is ignored and only it changed, skip the update
-            if isIgnored && i < lastRenderedLines.count && i < newLines.count {
+            if isIgnored, i < lastRenderedLines.count, i < newLines.count {
                 // Check if this is the only change by comparing surrounding lines
-                let prevSame = i == 0 || (i > 0 && 
-                    lastRenderedLines[i-1] == (i-1 < newLines.count ? newLines[i-1] : ""))
-                let nextSame = i == maxLines - 1 || (i < maxLines - 1 && 
-                    i+1 < lastRenderedLines.count && 
-                    lastRenderedLines[i+1] == (i+1 < newLines.count ? newLines[i+1] : ""))
-                
-                if prevSame && nextSame {
+                let prevSame = i == 0 || (i > 0 &&
+                    lastRenderedLines[i - 1] == (i - 1 < newLines.count ? newLines[i - 1] : "")
+                )
+                let nextSame = i == maxLines - 1 || (i < maxLines - 1 &&
+                    i + 1 < lastRenderedLines.count &&
+                    lastRenderedLines[i + 1] == (i + 1 < newLines.count ? newLines[i + 1] : "")
+                )
+
+                if prevSame, nextSame {
                     // This ignored line changed in isolation, skip rendering
                     continue
                 }
             }
-            
+
             // Always position cursor explicitly for each line update
             updateBatch += "\u{1B}[\(i + 1);1H" // Move to line i+1, column 1
-            
+
             if i < newLines.count {
                 // Clear line first, then write new content
                 updateBatch += "\u{1B}[2K" // Clear entire line
@@ -613,18 +613,18 @@ public actor StandardRenderer: Renderer {
                 updateBatch += "\u{1B}[2K" // Clear entire line
             }
         }
-        
+
         // Write batched updates
         if !updateBatch.isEmpty {
             output.write(updateBatch)
         }
-        
+
         // Position cursor at end of content
-        if newLines.count > 0 {
+        if !newLines.isEmpty {
             output.write("\u{1B}[\(newLines.count);1H")
         }
     }
-    
+
     /// Checks if a line should be ignored based on configuration
     private func isLineIgnored(lineIndex: Int, content: String) -> Bool {
         // Check if line index is in any ignored range
@@ -633,25 +633,24 @@ public actor StandardRenderer: Renderer {
                 return true
             }
         }
-        
+
         // Check if line content matches any ignored pattern
         for pattern in ignoredLinePatterns {
             if content.contains(pattern) {
                 return true
             }
         }
-        
+
         return false
     }
 
     private func writeANSI(_ code: String) async {
         var output = output
         output.write("\u{1B}[\(code)")
-        
+
         // Ensure output is flushed for SafeOutput
         if output is SafeOutput {
             // SafeOutput flushes automatically via DispatchQueue
         }
     }
 }
-

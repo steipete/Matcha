@@ -1,31 +1,145 @@
-# SwiftFormat configuration for Matcha
-# Compatible with Swift 6
+# SwiftFormat configuration for Swift 6
+# https://github.com/nicklockwood/SwiftFormat
 
 # Format Options
 --swiftversion 6.0
 
 # Indentation
 --indent 4
+--tabwidth 4
+--indentcase false
+--indentstrings false
 
-# Line Length
+# Line breaks
+--linebreaks lf
 --maxwidth 120
 
 # Wrapping
+--wrapcollections before-first
 --wraparguments before-first
 --wrapparameters before-first
---wrapcollections before-first
+--wrapconditions after-first
+--wrapternary before-operators
 
 # Spacing
---nospaceoperators ...,..<
 --trimwhitespace always
+--stripunusedargs closure-only
+--nospaceoperators ...,..<
 
-# Line Breaks
---linebreaks lf
+# Braces
+--allman false
+--binarygrouping 4,8
+--octalgrouping 4,8
+--hexgrouping 4,8
+--exponentcase lowercase
+--hexliteralcase uppercase
 
-# Other Style Choices
+# Functions
+--funcattributes prev-line
+--typeattributes prev-line
+--varattributes same-line
+
+# Self
+--self init-only
+--selfrequired 
+
+# Empty
+--emptybraces no-space
+
+# Header
+--header strip
+
+# Imports
 --importgrouping testable-bottom
---funcattributes preserve
---typeattributes preserve
+
+# Rules to enable
+--enable andOperator
+--enable anyObjectProtocol
+--enable blankLinesAroundMark
+--enable blankLinesAtEndOfScope
+--enable blankLinesAtStartOfScope
+--enable blankLinesBetweenScopes
+--enable braces
+--enable consecutiveBlankLines
+--enable consecutiveSpaces
+--enable duplicateImports
+--enable elseOnSameLine
+--enable emptyBraces
+--enable enumNamespaces
+--enable extensionAccessControl
+--enable fileHeader
+--enable hoistPatternLet
+--enable indent
+--enable initCoderUnavailable
+--enable leadingDelimiters
+--enable linebreakAtEndOfFile
+--enable markTypes
+--enable modifierOrder
+--enable numberFormatting
+--enable preferKeyPath
+--enable redundantBackticks
+--enable redundantBreak
+--enable redundantClosure
+--enable redundantExtensionACL
+--enable redundantFileprivate
+--enable redundantGet
+--enable redundantInit
+--enable redundantLet
+--enable redundantLetError
+--enable redundantNilInit
+--enable redundantObjc
+--enable redundantOptionalBinding
+--enable redundantParens
+--enable redundantPattern
+--enable redundantRawValues
+--enable redundantReturn
+--enable redundantSelf
+--enable redundantType
+--enable redundantVoidReturnType
+--enable semicolons
+--enable sortImports
+--enable sortSwitchCases
+--enable spaceAroundBraces
+--enable spaceAroundBrackets
+--enable spaceAroundComments
+--enable spaceAroundGenerics
+--enable spaceAroundOperators
+--enable spaceAroundParens
+--enable spaceInsideBraces
+--enable spaceInsideBrackets
+--enable spaceInsideComments
+--enable spaceInsideGenerics
+--enable spaceInsideParens
+--enable strongOutlets
+--enable strongifiedSelf
+--enable todos
+--enable trailingClosures
+--enable trailingCommas
+--enable trailingSpace
+--enable typeSugar
+--enable void
+--enable wrap
+--enable wrapArguments
+--enable wrapAttributes
+--enable wrapEnumCases
+--enable wrapMultilineStatementBraces
+--enable wrapSwitchCases
+--enable yodaConditions
 
 # Rules to disable
---disable unusedArguments,wrapMultilineStatementBraces
+--disable blankLinesAroundMark
+--disable wrapMultilineStatementBraces
+
+# Modifier order (for Swift 6)
+--modifierorder public,internal,private,fileprivate,open,static,class,final,required,convenience,override,indirect,lazy,weak,unowned,mutating,nonmutating,dynamic,prefix,postfix
+
+# Organize types
+--organizetypes class,struct,enum,extension,protocol
+--structthreshold 20
+--enumthreshold 20
+
+# Lifecycle methods
+--lifecycle
+
+# Exclude paths
+--exclude .build,DerivedData,Pods,.swiftpm

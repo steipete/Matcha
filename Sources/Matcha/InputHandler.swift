@@ -1,11 +1,6 @@
-//
-//  InputHandler.swift
-//  Matcha
-//
-//  Input handling and ANSI sequence parsing.
-//
-
 import Foundation
+
+// MARK: - InputHandler
 
 /// Handles terminal input and converts it to messages
 public final class InputHandler: @unchecked Sendable {
@@ -51,7 +46,7 @@ public final class InputHandler: @unchecked Sendable {
             if let reader = cancelReader, await reader.isCancelled {
                 break
             }
-            
+
             // Read available data
             let data = input.availableData
             guard !data.isEmpty else {
@@ -73,6 +68,8 @@ public final class InputHandler: @unchecked Sendable {
         continuation.finish()
     }
 }
+
+// MARK: - ANSIParser
 
 /// ANSI sequence parser
 final class ANSIParser {
@@ -150,7 +147,7 @@ final class ANSIParser {
                     isPasting = true
                     state = .paste
                     pasteBuffer = ""
-                } else if buffer.count == 6 && buffer[2] == 0x4D { // ESC[M (X10 mouse)
+                } else if buffer.count == 6, buffer[2] == 0x4D { // ESC[M (X10 mouse)
                     if let mouse = parseMouseX10(buffer) {
                         messages.append(mouse)
                     }
@@ -175,7 +172,7 @@ final class ANSIParser {
             buffer.append(byte)
 
             // DCS sequences end with ST (ESC \)
-            if buffer.count >= 2 && buffer[buffer.count - 2] == 0x1B && byte == 0x5C {
+            if buffer.count >= 2, buffer[buffer.count - 2] == 0x1B, byte == 0x5C {
                 state = .ground
                 // Handle DCS sequences
                 if let message = parseDCSSequence(buffer) {
@@ -198,7 +195,7 @@ final class ANSIParser {
 
                     // Send a single PasteMsg with all the text
                     messages.append(PasteMsg(text: pasteBuffer))
-                    
+
                     // Also send individual character messages with paste flag if needed
                     // (commented out - use one approach or the other)
                     // for char in pasteBuffer {
@@ -230,7 +227,8 @@ final class ANSIParser {
         case 0x07: KeyMsg(type: .ctrlG)
         case 0x08: KeyMsg(type: .backspace)
         case 0x09: KeyMsg(type: .tab)
-        case 0x0A, 0x0D: KeyMsg(type: .enter)
+        case 0x0A,
+             0x0D: KeyMsg(type: .enter)
         case 0x0B: KeyMsg(type: .ctrlK)
         case 0x0C: KeyMsg(type: .ctrlL)
         case 0x0E: KeyMsg(type: .ctrlN)
@@ -324,7 +322,7 @@ final class ANSIParser {
         if sequence.hasPrefix("<") {
             // SGR mode
             return parseMouseSGR(sequence)
-        } else if sequence.hasPrefix("M") && buffer.count == 6 {
+        } else if sequence.hasPrefix("M"), buffer.count == 6 {
             // X10 mode
             return parseMouseX10(buffer)
         }
@@ -379,33 +377,33 @@ final class ANSIParser {
         )
         return MouseMsg(event)
     }
-    
+
     private func parseMouseX10(_ buffer: [UInt8]) -> MouseMsg? {
         // X10 mouse format: ESC[M<button><x><y>
         // Buffer: [ESC, '[', 'M', button+32, x+32, y+32]
         guard buffer.count == 6 else { return nil }
-        
+
         let buttonByte = buffer[3] - 32
         let x = Int(buffer[4] - 32)
         let y = Int(buffer[5] - 32)
-        
+
         // X10 button encoding:
         // bits 0-1: button (0=left, 1=middle, 2=right, 3=release)
         // bit 2: shift
         // bit 3: meta/alt
         // bit 4: ctrl
         // bits 5-6: motion flags
-        
+
         let buttonCode = buttonByte & 0x03
         let shift = (buttonByte & 0x04) != 0
         let alt = (buttonByte & 0x08) != 0
         let ctrl = (buttonByte & 0x10) != 0
         let motion = (buttonByte & 0x20) != 0
-        
+
         // Determine button and action
         let button: MouseButton
         let action: MouseAction
-        
+
         if buttonCode == 3 {
             // Release event
             button = .none
@@ -429,9 +427,9 @@ final class ANSIParser {
             }
             action = .press
         }
-        
+
         // Check for wheel events (X10 encodes them specially)
-        let wheelButton: MouseButton? = if buttonByte >= 64 && buttonByte <= 67 {
+        let wheelButton: MouseButton? = if buttonByte >= 64, buttonByte <= 67 {
             switch buttonByte {
             case 64: .wheelUp
             case 65: .wheelDown
@@ -442,10 +440,10 @@ final class ANSIParser {
         } else {
             nil
         }
-        
+
         let finalButton = wheelButton ?? button
         let finalAction: MouseAction = wheelButton != nil ? .press : action
-        
+
         let event = MouseEvent(
             x: x - 1, // Convert from 1-based to 0-based
             y: y - 1,
@@ -457,18 +455,18 @@ final class ANSIParser {
         )
         return MouseMsg(event)
     }
-    
+
     private func parseDCSSequence(_ buffer: [UInt8]) -> (any Message)? {
         // DCS sequence format: ESC P ... ST
         // For now, we'll create a message to indicate we received a DCS sequence
         // In the future, this can be expanded to handle specific DCS sequences
-        
+
         // Extract the DCS content (excluding ESC P at start and ST at end)
         guard buffer.count > 4 else { return nil }
-        
+
         // The content is between ESC P and ESC \
-        let content = Array(buffer[2..<buffer.count-2])
-        
+        let content = Array(buffer[2..<buffer.count - 2])
+
         // For now, return an unknown DCS message
         // In the future, we can parse specific DCS sequences here
         return UnknownDCSSequenceMsg(bytes: content)

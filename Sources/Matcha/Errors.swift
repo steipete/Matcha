@@ -1,32 +1,27 @@
-//
-//  Errors.swift
-//  Matcha
-//
-//  Error types for program lifecycle and execution.
-//
-
 import Foundation
 
-// MARK: - Standard Errors (matching Bubbletea)
+// MARK: - ErrProgramPanic
 
 /// ErrProgramPanic is returned by [Program.Run] when the program recovers from a panic.
 public struct ErrProgramPanic: Error, LocalizedError, Sendable {
     public init() {}
-    
+
     public var errorDescription: String? {
         "program experienced a panic"
     }
 }
 
+// MARK: - ErrProgramKilled
+
 /// ErrProgramKilled is returned by [Program.Run] when the program gets killed.
 public struct ErrProgramKilled: Error, LocalizedError, Sendable {
     /// The underlying error that caused the kill, if any
     public let underlyingError: Error?
-    
+
     public init(underlyingError: Error? = nil) {
         self.underlyingError = underlyingError
     }
-    
+
     public var errorDescription: String? {
         if let underlying = underlyingError {
             return "program was killed: \(underlying)"
@@ -35,36 +30,38 @@ public struct ErrProgramKilled: Error, LocalizedError, Sendable {
     }
 }
 
+// MARK: - ErrInterrupted
+
 /// ErrInterrupted is returned by [Program.Run] when the program get a SIGINT
 /// signal, or when it receives a [InterruptMsg].
 public struct ErrInterrupted: Error, LocalizedError, Sendable {
     public init() {}
-    
+
     public var errorDescription: String? {
         "program was interrupted"
     }
 }
 
-// MARK: - Extended Error Types
+// MARK: - ProgramPanicError
 
 /// Error thrown when the program encounters a panic condition.
-/// 
+///
 /// This error represents an unrecoverable state in the program execution,
 /// similar to a runtime exception. It may contain information about what
 /// caused the panic.
 public struct ProgramPanicError: Error, LocalizedError, Sendable {
     /// A description of what caused the panic
     public let reason: String
-    
+
     /// The source location where the panic occurred, if available
     public let file: String?
-    
+
     /// The line number where the panic occurred, if available
     public let line: Int?
-    
+
     /// The underlying error that caused the panic, if any
     public let underlyingError: Error?
-    
+
     /// Creates a new program panic error.
     /// - Parameters:
     ///   - reason: Description of what caused the panic
@@ -82,18 +79,20 @@ public struct ProgramPanicError: Error, LocalizedError, Sendable {
         self.line = line
         self.underlyingError = underlyingError
     }
-    
+
     public var errorDescription: String? {
         var description = "Program panic: \(reason)"
-        if let file = file, let line = line {
+        if let file, let line {
             description += " at \(file):\(line)"
         }
-        if let underlyingError = underlyingError {
+        if let underlyingError {
             description += " (underlying: \(underlyingError))"
         }
         return description
     }
 }
+
+// MARK: - ProgramKilledError
 
 /// Error thrown when the program is forcefully terminated.
 ///
@@ -103,10 +102,10 @@ public struct ProgramPanicError: Error, LocalizedError, Sendable {
 public struct ProgramKilledError: Error, LocalizedError, Sendable {
     /// The reason for the termination, if known
     public let reason: String?
-    
+
     /// The signal that caused the termination, if applicable
     public let signal: Int32?
-    
+
     /// Creates a new program killed error.
     /// - Parameters:
     ///   - reason: Optional description of why the program was killed
@@ -115,18 +114,20 @@ public struct ProgramKilledError: Error, LocalizedError, Sendable {
         self.reason = reason
         self.signal = signal
     }
-    
+
     public var errorDescription: String? {
         var description = "Program killed"
-        if let reason = reason {
+        if let reason {
             description += ": \(reason)"
         }
-        if let signal = signal {
+        if let signal {
             description += " (signal: \(signal))"
         }
         return description
     }
 }
+
+// MARK: - InterruptedError
 
 /// Error thrown when an operation is interrupted.
 ///
@@ -136,13 +137,13 @@ public struct ProgramKilledError: Error, LocalizedError, Sendable {
 public struct InterruptedError: Error, LocalizedError, Sendable {
     /// The operation that was interrupted
     public let operation: String
-    
+
     /// Whether the interruption was caused by user action
     public let userInitiated: Bool
-    
+
     /// Additional context about the interruption
     public let context: String?
-    
+
     /// Creates a new interrupted error.
     /// - Parameters:
     ///   - operation: Description of the operation that was interrupted
@@ -157,13 +158,13 @@ public struct InterruptedError: Error, LocalizedError, Sendable {
         self.userInitiated = userInitiated
         self.context = context
     }
-    
+
     public var errorDescription: String? {
         var description = "Operation interrupted: \(operation)"
         if userInitiated {
             description += " (user initiated)"
         }
-        if let context = context {
+        if let context {
             description += " - \(context)"
         }
         return description
@@ -187,7 +188,7 @@ public extension ProgramPanicError {
         let reason = message ?? "Assertion failed: \(condition)"
         return ProgramPanicError(reason: reason, file: file, line: line)
     }
-    
+
     /// Creates a panic error for an unexpected nil value.
     /// - Parameters:
     ///   - name: Name of the value that was unexpectedly nil
@@ -200,7 +201,7 @@ public extension ProgramPanicError {
         line: Int = #line
     ) -> ProgramPanicError {
         var reason = "Unexpected nil value: \(name)"
-        if let context = context {
+        if let context {
             reason += " in \(context)"
         }
         return ProgramPanicError(reason: reason, file: file, line: line)
@@ -213,13 +214,13 @@ public extension InterruptedError {
         operation: "Input reading",
         userInitiated: true
     )
-    
+
     /// Common interrupted error for rendering operations
     static let renderInterrupted = InterruptedError(
         operation: "Rendering",
         userInitiated: false
     )
-    
+
     /// Common interrupted error for command execution
     static let commandInterrupted = InterruptedError(
         operation: "Command execution",

@@ -1,11 +1,6 @@
-//
-//  Exec.swift
-//  Matcha
-//
-//  Exec command implementation for running external processes.
-//
-
 import Foundation
+
+// MARK: - ExecMsg
 
 /// execMsg is used internally to run an ExecCommand sent with Exec.
 struct ExecMsg: Message {
@@ -60,6 +55,8 @@ public func ExecProcess<M: Message>(_ p: Process, _ fn: ExecCallback? = nil) -> 
 /// with an error, which may or may not be nil.
 public typealias ExecCallback = @Sendable (Error?) -> any Message
 
+// MARK: - ExecCommand
+
 /// ExecCommand can be implemented to execute things in a blocking fashion in
 /// the current terminal.
 public protocol ExecCommand: Sendable {
@@ -69,15 +66,17 @@ public protocol ExecCommand: Sendable {
     func setStderr(_ writer: FileHandle)
 }
 
+// MARK: - ProcessCommand
+
 /// ProcessCommand wraps a Process so that it satisfies the ExecCommand
 /// interface so it can be used with Exec.
 final class ProcessCommand: ExecCommand, @unchecked Sendable {
     private let process: Process
-    
+
     init(_ process: Process) {
         self.process = process
     }
-    
+
     /// SetStdin sets stdin on underlying Process to the given FileHandle.
     func setStdin(_ reader: FileHandle) {
         // If unset, have the command use the same input as the terminal.
@@ -85,7 +84,7 @@ final class ProcessCommand: ExecCommand, @unchecked Sendable {
             process.standardInput = reader
         }
     }
-    
+
     /// SetStdout sets stdout on underlying Process to the given FileHandle.
     func setStdout(_ writer: FileHandle) {
         // If unset, have the command use the same output as the terminal.
@@ -93,7 +92,7 @@ final class ProcessCommand: ExecCommand, @unchecked Sendable {
             process.standardOutput = writer
         }
     }
-    
+
     /// SetStderr sets stderr on the underlying Process to the given FileHandle.
     func setStderr(_ writer: FileHandle) {
         // If unset, use stderr for the command's stderr
@@ -101,11 +100,11 @@ final class ProcessCommand: ExecCommand, @unchecked Sendable {
             process.standardError = writer
         }
     }
-    
+
     func run() throws {
         try process.run()
         process.waitUntilExit()
-        
+
         // Check termination status
         if process.terminationStatus != 0 {
             throw ProcessError(terminationStatus: process.terminationStatus)
@@ -113,10 +112,12 @@ final class ProcessCommand: ExecCommand, @unchecked Sendable {
     }
 }
 
+// MARK: - ProcessError
+
 /// Error thrown when a process exits with non-zero status
 public struct ProcessError: Error, LocalizedError {
     public let terminationStatus: Int32
-    
+
     public var errorDescription: String? {
         "Process exited with status \(terminationStatus)"
     }

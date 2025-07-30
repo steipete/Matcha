@@ -1,11 +1,6 @@
-//
-//  Mouse.swift
-//  Matcha
-//
-//  Mouse input handling for the Matcha TUI framework.
-//
-
 import Foundation
+
+// MARK: - MouseMsg
 
 /// MouseMsg contains information about a mouse event and are sent to a programs
 /// update function when mouse activity occurs. Note that the mouse must first
@@ -13,31 +8,31 @@ import Foundation
 public struct MouseMsg: Message, Sendable {
     /// The underlying mouse event
     private let event: MouseEvent
-    
+
     /// X coordinate of the mouse event (0-based)
     public var x: Int { event.x }
-    
+
     /// Y coordinate of the mouse event (0-based)
     public var y: Int { event.y }
-    
+
     /// Whether the Shift key was held during the event
     public var shift: Bool { event.shift }
-    
+
     /// Whether the Alt/Option key was held during the event
     public var alt: Bool { event.alt }
-    
+
     /// Whether the Control key was held during the event
     public var ctrl: Bool { event.ctrl }
-    
+
     /// The type of mouse action
     public var action: MouseAction { event.action }
-    
+
     /// The mouse button involved in the event
     public var button: MouseButton { event.button }
-    
+
     /// Deprecated: Use action and button instead
     public var type: MouseEventType { event.type }
-    
+
     public init(
         x: Int,
         y: Int,
@@ -54,13 +49,13 @@ public struct MouseMsg: Message, Sendable {
             type: MouseEventType.unknown // Will be computed
         )
     }
-    
+
     public init(_ event: MouseEvent) {
         self.event = event
     }
 }
 
-// MARK: - String Representation
+// MARK: CustomStringConvertible
 
 extension MouseMsg: CustomStringConvertible {
     /// Returns a string representation of a mouse event.
@@ -68,6 +63,8 @@ extension MouseMsg: CustomStringConvertible {
         event.description
     }
 }
+
+// MARK: - MouseEvent
 
 /// MouseEvent represents a mouse event, which could be a click, a scroll wheel
 /// movement, a cursor movement, or a combination.
@@ -79,10 +76,10 @@ public struct MouseEvent: Equatable, Sendable {
     public let ctrl: Bool
     public let action: MouseAction
     public let button: MouseButton
-    
+
     /// Deprecated: Use MouseAction & MouseButton instead.
     public let type: MouseEventType
-    
+
     public init(
         x: Int,
         y: Int,
@@ -106,11 +103,11 @@ public struct MouseEvent: Equatable, Sendable {
 
 // MARK: - Mouse Event Methods
 
-extension MouseEvent {
+public extension MouseEvent {
     /// IsWheel returns true if the mouse event is a wheel event.
-    public var isWheel: Bool {
+    var isWheel: Bool {
         button == .wheelUp || button == .wheelDown ||
-        button == .wheelLeft || button == .wheelRight
+            button == .wheelLeft || button == .wheelRight
     }
 }
 
@@ -120,7 +117,7 @@ extension MouseEvent: CustomStringConvertible {
     /// Returns a string representation of a mouse event.
     public var description: String {
         var s = ""
-        
+
         if ctrl {
             s += "ctrl+"
         }
@@ -130,7 +127,7 @@ extension MouseEvent: CustomStringConvertible {
         if shift {
             s += "shift+"
         }
-        
+
         if button == .none {
             if action == .motion || action == .release {
                 s += mouseActions[action] ?? "unknown"
@@ -147,7 +144,7 @@ extension MouseEvent: CustomStringConvertible {
                 s += " " + act
             }
         }
-        
+
         return s
     }
 }
@@ -162,7 +159,7 @@ public enum MouseAction: Int, Sendable {
 private let mouseActions: [MouseAction: String] = [
     .press: "press",
     .release: "release",
-    .motion: "motion"
+    .motion: "motion",
 ]
 
 /// MouseButton represents the button that was pressed during a mouse event.
@@ -193,7 +190,7 @@ public enum MouseButton: Int, Sendable {
     case forward = 9
     case button10 = 10
     case button11 = 11
-    
+
     /// Initialize from raw button number
     public init(rawValue: Int) {
         switch rawValue {
@@ -226,15 +223,15 @@ private let mouseButtons: [MouseButton: String] = [
     .backward: "backward",
     .forward: "forward",
     .button10: "button 10",
-    .button11: "button 11"
+    .button11: "button 11",
 ]
 
 /// MouseEventType represents the type of mouse event (deprecated).
 public enum MouseEventType: String, Sendable {
-    case unknown = "unknown"
-    case motion = "motion"
-    case release = "release"
-    case press = "press"
+    case unknown
+    case motion
+    case release
+    case press
     case wheelUp = "wheel up"
     case wheelDown = "wheel down"
     case wheelLeft = "wheel left"

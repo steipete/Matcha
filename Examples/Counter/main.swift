@@ -1,11 +1,6 @@
-//
-//  main.swift
-//  Counter Example
-//
-//  A simple counter application demonstrating Matcha basics.
-//
-
 import Matcha
+
+// MARK: - CounterModel
 
 // Define our model
 public struct CounterModel: Model {
@@ -47,11 +42,16 @@ public struct CounterModel: Model {
         case let .key(key):
             // Handle keyboard input
             switch key.description {
-            case "up", "+", "=":
+            case "+",
+                 "=",
+                 "up":
                 return update(.increment)
-            case "down", "-", "_":
+            case "_",
+                 "-",
+                 "down":
                 return update(.decrement)
-            case "0", "r":
+            case "0",
+                 "r":
                 return update(.reset)
             default:
                 // Quit keys are handled by the program filter
@@ -64,58 +64,66 @@ public struct CounterModel: Model {
     public func view() -> String {
         // Step 1: Start with the simplest possible box
         var lines: [String] = []
-        
+
         // Step 2: Define consistent width
         let innerWidth = 40
-        
+
         // Step 3: Build top border
         lines.append("┌" + String(repeating: "─", count: innerWidth) + "┐")
-        
+
         // Step 4: Add title
         let title = "Counter Example"
         let titlePadding = (innerWidth - title.count) / 2
-        let titleLine = String(repeating: " ", count: titlePadding) + title + String(repeating: " ", count: innerWidth - titlePadding - title.count)
+        let titleLine = String(repeating: " ", count: titlePadding) + title + String(
+            repeating: " ",
+            count: innerWidth - titlePadding - title.count
+        )
         lines.append("│" + titleLine + "│")
-        
+
         // Step 5: Add divider
         lines.append("├" + String(repeating: "─", count: innerWidth) + "┤")
-        
+
         // Step 6: Add empty line
         lines.append("│" + String(repeating: " ", count: innerWidth) + "│")
-        
+
         // Step 7: Add count
         let countText = "Count: \(count)"
         let countPadding = (innerWidth - countText.count) / 2
-        let countLine = String(repeating: " ", count: countPadding) + countText + String(repeating: " ", count: innerWidth - countPadding - countText.count)
+        let countLine = String(repeating: " ", count: countPadding) + countText + String(
+            repeating: " ",
+            count: innerWidth - countPadding - countText.count
+        )
         lines.append("│" + countLine + "│")
-        
+
         // Step 8: Add another empty line
         lines.append("│" + String(repeating: " ", count: innerWidth) + "│")
-        
+
         // Step 9: Add second divider
         lines.append("├" + String(repeating: "─", count: innerWidth) + "┤")
-        
+
         // Step 10: Add controls - first row
         let ctrl1 = "↑/+  Increment"
         let ctrl2 = "↓/-  Decrement"
         let spacing1 = innerWidth - ctrl1.count - ctrl2.count - 4 // 4 for padding
         let controlLine1 = "  " + ctrl1 + String(repeating: " ", count: spacing1) + ctrl2 + "  "
         lines.append("│" + controlLine1 + "│")
-        
+
         // Step 11: Add controls - second row
         let ctrl3 = "0/r  Reset"
         let ctrl4 = "q    Quit"
         let spacing2 = innerWidth - ctrl3.count - ctrl4.count - 4 // 4 for padding
         let controlLine2 = "  " + ctrl3 + String(repeating: " ", count: spacing2) + ctrl4 + "  "
         lines.append("│" + controlLine2 + "│")
-        
+
         // Step 12: Add bottom border
         lines.append("└" + String(repeating: "─", count: innerWidth) + "┘")
-        
+
         // Step 13: Join all lines
         return lines.joined(separator: "\n")
     }
 }
+
+// MARK: - CounterApp
 
 // Main entry point
 @main
@@ -127,7 +135,8 @@ enum CounterApp {
         options.filter = { _, message in
             if let key = message as? KeyMsg {
                 switch key.description {
-                case "q", "ctrl+c":
+                case "ctrl+c",
+                     "q":
                     // Convert quit keys to QuitMsg
                     return QuitMsg()
                 default:

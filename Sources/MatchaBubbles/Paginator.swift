@@ -1,10 +1,3 @@
-//
-//  Paginator.swift
-//  MatchaBubbles
-//
-//  A pagination component.
-//
-
 import Foundation
 import Matcha
 import MatchaStyle
@@ -38,29 +31,29 @@ public struct Paginator: Sendable {
         /// Shows compact format like "3/10"
         case compact
     }
-    
+
     // MARK: - Properties
-    
+
     /// Total number of items across all pages
     public var totalItems: Int
-    
+
     /// Number of items displayed per page
     public var itemsPerPage: Int
-    
+
     /// Current page index (0-based)
     public var currentPage: Int
-    
+
     /// Visual style for displaying pagination
     public var displayStyle: DisplayStyle = .dots
-    
+
     // MARK: - Computed Properties
-    
+
     /// Total number of pages based on items and items per page
     public var totalPages: Int {
         guard itemsPerPage > 0 else { return 0 }
         return (totalItems + itemsPerPage - 1) / itemsPerPage
     }
-    
+
     /// Creates a new paginator
     /// - Parameters:
     ///   - totalItems: Total number of items to paginate
@@ -71,31 +64,31 @@ public struct Paginator: Sendable {
         self.itemsPerPage = itemsPerPage
         self.currentPage = currentPage
     }
-    
+
     // MARK: - Navigation
-    
+
     /// Advances to the next page if available
     public mutating func nextPage() {
         if currentPage < totalPages - 1 {
             currentPage += 1
         }
     }
-    
+
     /// Goes back to the previous page if available
     public mutating func previousPage() {
         if currentPage > 0 {
             currentPage -= 1
         }
     }
-    
+
     /// Jumps to a specific page
     /// - Parameter page: Target page index (0-based), will be clamped to valid range
     public mutating func goToPage(_ page: Int) {
         currentPage = max(0, min(page, totalPages - 1))
     }
-    
+
     // MARK: - Rendering
-    
+
     /// Renders the paginator based on the current display style.
     ///
     /// The appearance varies by style:
@@ -106,7 +99,7 @@ public struct Paginator: Sendable {
     /// - Returns: String representation of the paginator, empty if no pages
     public func view() -> String {
         guard totalPages > 0 else { return "" }
-        
+
         switch displayStyle {
         case .dots:
             return renderDots()
@@ -116,10 +109,10 @@ public struct Paginator: Sendable {
             return renderCompact()
         }
     }
-    
+
     private func renderDots() -> String {
         var dots: [String] = []
-        
+
         for i in 0..<totalPages {
             if i == currentPage {
                 dots.append("●")
@@ -127,14 +120,14 @@ public struct Paginator: Sendable {
                 dots.append("○")
             }
         }
-        
+
         return dots.joined(separator: " ")
     }
-    
+
     private func renderNumbers() -> String {
         var numbers: [String] = []
         let style = Style()
-        
+
         // Show up to 7 page numbers with ellipsis
         if totalPages <= 7 {
             // Show all pages
@@ -184,11 +177,11 @@ public struct Paginator: Sendable {
                 numbers.append("\(totalPages)")
             }
         }
-        
+
         return numbers.joined(separator: " ")
     }
-    
+
     private func renderCompact() -> String {
-        return "\(currentPage + 1)/\(totalPages)"
+        "\(currentPage + 1)/\(totalPages)"
     }
 }

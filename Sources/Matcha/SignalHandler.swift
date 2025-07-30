@@ -1,53 +1,54 @@
 import Foundation
+
 #if os(macOS) || os(Linux)
-#if os(macOS)
-import Darwin
-#elseif os(Linux)
-import Glibc
-#endif
+    #if os(macOS)
+        import Darwin
+    #elseif os(Linux)
+        import Glibc
+    #endif
 
-/// Represents different signal types
-public enum Signal: Sendable {
-    case interrupt      // SIGINT (Ctrl+C)
-    case suspend        // SIGTSTP (Ctrl+Z)
-    case windowChanged  // SIGWINCH
-    case terminated     // SIGTERM
-    case continued      // SIGCONT
-}
+    /// Represents different signal types
+    public enum Signal: Sendable {
+        case interrupt // SIGINT (Ctrl+C)
+        case suspend // SIGTSTP (Ctrl+Z)
+        case windowChanged // SIGWINCH
+        case terminated // SIGTERM
+        case continued // SIGCONT
+    }
 
-/// Manages signal handling for the terminal
-public final class SignalManager: @unchecked Sendable {
-    /// Shared instance
-    public static let shared = SignalManager()
-    
-    /// Callback for signal events
-    public var onSignal: (@Sendable (Signal) -> Void)?
-    
-    private init() {
-        setupSignalHandlers()
+    /// Manages signal handling for the terminal
+    public final class SignalManager: @unchecked Sendable {
+        /// Shared instance
+        public static let shared = SignalManager()
+
+        /// Callback for signal events
+        public var onSignal: (@Sendable (Signal) -> Void)?
+
+        private init() {
+            setupSignalHandlers()
+        }
+
+        private func setupSignalHandlers() {
+            // Install signal handlers
+            signal(SIGINT) { _ in
+                SignalManager.shared.onSignal?(.interrupt)
+            }
+
+            signal(SIGTSTP) { _ in
+                SignalManager.shared.onSignal?(.suspend)
+            }
+
+            signal(SIGWINCH) { _ in
+                SignalManager.shared.onSignal?(.windowChanged)
+            }
+
+            signal(SIGTERM) { _ in
+                SignalManager.shared.onSignal?(.terminated)
+            }
+
+            signal(SIGCONT) { _ in
+                SignalManager.shared.onSignal?(.continued)
+            }
+        }
     }
-    
-    private func setupSignalHandlers() {
-        // Install signal handlers
-        signal(SIGINT) { _ in
-            SignalManager.shared.onSignal?(.interrupt)
-        }
-        
-        signal(SIGTSTP) { _ in
-            SignalManager.shared.onSignal?(.suspend)
-        }
-        
-        signal(SIGWINCH) { _ in
-            SignalManager.shared.onSignal?(.windowChanged)
-        }
-        
-        signal(SIGTERM) { _ in
-            SignalManager.shared.onSignal?(.terminated)
-        }
-        
-        signal(SIGCONT) { _ in
-            SignalManager.shared.onSignal?(.continued)
-        }
-    }
-}
 #endif
