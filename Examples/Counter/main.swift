@@ -62,20 +62,43 @@ public struct CounterModel: Model {
 
     // Render the view
     public func view() -> String {
-        """
-        ╭───────────────────────────╮
-        │      Counter Example      │
-        ├───────────────────────────┤
-        │                           │
-        │       Count: \(String(format: "%3d", count))         │
-        │                           │
-        ├───────────────────────────┤
-        │  ↑/+  Increment          │
-        │  ↓/-  Decrement          │
-        │  0/r  Reset              │
-        │  q    Quit               │
-        ╰───────────────────────────╯
-        """
+        let width = 60
+        let border = "─"
+        let topBorder = "┌" + String(repeating: border, count: width - 2) + "┐"
+        let bottomBorder = "└" + String(repeating: border, count: width - 2) + "┘"
+        let divider = "├" + String(repeating: border, count: width - 2) + "┤"
+        
+        let title = "Counter Example"
+        let titlePadding = (width - 2 - title.count) / 2
+        let titleLine = "│" + String(repeating: " ", count: titlePadding) + title + String(repeating: " ", count: width - 2 - titlePadding - title.count) + "│"
+        
+        let countText = "Count: \(count)"
+        let countPadding = (width - 2 - countText.count) / 2
+        let countLine = "│" + String(repeating: " ", count: countPadding) + countText + String(repeating: " ", count: width - 2 - countPadding - countText.count) + "│"
+        
+        let emptyLine = "│" + String(repeating: " ", count: width - 2) + "│"
+        
+        // Controls on single lines
+        let controls1 = "↑/+  Increment          ↓/-  Decrement"
+        let controls1Padding = (width - 2 - controls1.count) / 2
+        let controlsLine1 = "│" + String(repeating: " ", count: controls1Padding) + controls1 + String(repeating: " ", count: width - 2 - controls1Padding - controls1.count) + "│"
+        
+        let controls2 = "0/r  Reset              q    Quit"
+        let controls2Padding = (width - 2 - controls2.count) / 2
+        let controlsLine2 = "│" + String(repeating: " ", count: controls2Padding) + controls2 + String(repeating: " ", count: width - 2 - controls2Padding - controls2.count) + "│"
+        
+        return [
+            topBorder,
+            titleLine,
+            divider,
+            emptyLine,
+            countLine,
+            emptyLine,
+            divider,
+            controlsLine1,
+            controlsLine2,
+            bottomBorder
+        ].joined(separator: "\n")
     }
 }
 
