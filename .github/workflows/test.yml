@@ -1,0 +1,91 @@
+name: Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-14]
+        swift: ['6.0']
+        include:
+          - os: ubuntu-latest
+            swift: '5.10'
+          - os: macos-14
+            swift: '5.10'
+          
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v3
+      with:
+        swift-version: ${{ matrix.swift }}
+    
+    - name: Get Swift version
+      run: swift --version
+    
+    - name: Build
+      run: swift build -v
+    
+    - name: Run tests
+      run: swift test -v
+    
+    - name: Run tests with Swift 6 language mode (Swift 6.0 only)
+      if: matrix.swift == '6.0'
+      run: swift test -v -Xswiftc -swift-version -Xswiftc 6
+    
+    - name: Build all examples
+      run: |
+        # Build all example targets
+        swift build --target Counter
+        swift build --target TextInput
+        swift build --target List
+        swift build --target ProgressExample
+        swift build --target FileBrowserExample
+        swift build --target ConfirmationExample
+        swift build --target ExecExample
+        swift build --target Focus
+        swift build --target FullScreen
+        swift build --target HelpExample
+        swift build --target KeyBindingExample
+        swift build --target Mouse
+        swift build --target PaginatorExample
+        swift build --target RealTimeUpdates
+        swift build --target SpinnerExample
+        swift build --target SplitPanes
+        swift build --target StopwatchExample
+        swift build --target TableExample
+        swift build --target TabsExample
+        swift build --target TextAreaExample
+        swift build --target Timer
+        swift build --target ViewportExample
+        swift build --target AltScreen
+        swift build --target Dashboard
+        swift build --target MarkdownEditor
+    
+    - name: Test Linux compatibility (macOS only)
+      if: matrix.os == 'macos-14'
+      run: |
+        chmod +x Tests/LinuxCompatibilityTest.sh
+        Tests/LinuxCompatibilityTest.sh
+
+  docker-test:
+    name: Test in Docker (Linux)
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Build Docker image
+      run: docker build -t matcha-test .
+    
+    - name: List built examples
+      run: docker run --rm matcha-test find .build/release -type f -executable | grep -v '\.build'
