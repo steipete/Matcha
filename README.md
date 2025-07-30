@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="assets/matcha-logo.png" alt="Matcha Logo" width="400">
+</div>
+
 # Matcha
 
 > **Note**: This project is under active development and is not yet production-ready. APIs may change, and some features are still being implemented.
