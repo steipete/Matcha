@@ -6,8 +6,10 @@
 //
 
 import Foundation
-#if os(macOS) || os(Linux)
+#if os(macOS)
     import Darwin
+#elseif os(Linux)
+    import Glibc
 #endif
 
 /// Provides terminal control functionality
@@ -96,6 +98,20 @@ public struct Terminal: Sendable {
     /// Exits raw mode
     public func exitRawMode() throws {
         // TODO: Restore original termios state
+    }
+
+    /// Opens a TTY for input
+    public func openTTY() throws -> FileHandle {
+        #if os(macOS) || os(Linux)
+            let ttyPath = "/dev/tty"
+            let fd = open(ttyPath, O_RDONLY)
+            if fd < 0 {
+                throw TerminalError.notATTY
+            }
+            return FileHandle(fileDescriptor: fd)
+        #else
+            throw TerminalError.notATTY
+        #endif
     }
 
     /// Hides the cursor

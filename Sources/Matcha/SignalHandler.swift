@@ -1,6 +1,10 @@
 import Foundation
 #if os(macOS) || os(Linux)
+#if os(macOS)
 import Darwin
+#elseif os(Linux)
+import Glibc
+#endif
 
 /// Represents different signal types
 public enum Signal: Sendable {

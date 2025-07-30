@@ -7,6 +7,46 @@
 
 import Foundation
 
+// MARK: - Standard Errors (matching Bubbletea)
+
+/// ErrProgramPanic is returned by [Program.Run] when the program recovers from a panic.
+public struct ErrProgramPanic: Error, LocalizedError, Sendable {
+    public init() {}
+    
+    public var errorDescription: String? {
+        "program experienced a panic"
+    }
+}
+
+/// ErrProgramKilled is returned by [Program.Run] when the program gets killed.
+public struct ErrProgramKilled: Error, LocalizedError, Sendable {
+    /// The underlying error that caused the kill, if any
+    public let underlyingError: Error?
+    
+    public init(underlyingError: Error? = nil) {
+        self.underlyingError = underlyingError
+    }
+    
+    public var errorDescription: String? {
+        if let underlying = underlyingError {
+            return "program was killed: \(underlying)"
+        }
+        return "program was killed"
+    }
+}
+
+/// ErrInterrupted is returned by [Program.Run] when the program get a SIGINT
+/// signal, or when it receives a [InterruptMsg].
+public struct ErrInterrupted: Error, LocalizedError, Sendable {
+    public init() {}
+    
+    public var errorDescription: String? {
+        "program was interrupted"
+    }
+}
+
+// MARK: - Extended Error Types
+
 /// Error thrown when the program encounters a panic condition.
 /// 
 /// This error represents an unrecoverable state in the program execution,

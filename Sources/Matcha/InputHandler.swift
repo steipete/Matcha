@@ -11,6 +11,7 @@ import Foundation
 public final class InputHandler: @unchecked Sendable {
     private let input: FileHandle
     private let messageSubject = AsyncStream<any Message>.makeStream()
+    private let cancelReader: CancelReader?
 
     /// The stream of parsed messages
     public var messages: AsyncStream<any Message> {
@@ -19,8 +20,9 @@ public final class InputHandler: @unchecked Sendable {
 
     private var task: Task<Void, Never>?
 
-    public init(input: FileHandle) {
+    public init(input: FileHandle, cancelReader: CancelReader? = nil) {
         self.input = input
+        self.cancelReader = cancelReader
         start()
     }
 
@@ -35,6 +37,9 @@ public final class InputHandler: @unchecked Sendable {
 
     public func stop() {
         task?.cancel()
+        Task {
+            _ = await cancelReader?.cancel()
+        }
         messageSubject.continuation.finish()
     }
 
@@ -42,6 +47,11 @@ public final class InputHandler: @unchecked Sendable {
         let parser = ANSIParser()
 
         while !Task.isCancelled {
+            // Check if cancelled
+            if let reader = cancelReader, await reader.isCancelled {
+                break
+            }
+            
             // Read available data
             let data = input.availableData
             guard !data.isEmpty else {
@@ -77,6 +87,7 @@ final class ANSIParser {
         case escape
         case csi
         case osc
+        case dcs
         case paste
     }
 
@@ -94,12 +105,12 @@ final class ANSIParser {
                     messages.append(key)
                 }
             } else if byte == 0x7F { // DEL
-                messages.append(Key(type: .delete))
+                messages.append(KeyMsg(type: .delete))
             } else {
                 // Regular character
                 let scalar = UnicodeScalar(byte)
                 let char = Character(scalar)
-                messages.append(Key(character: char))
+                messages.append(KeyMsg(character: char))
             }
 
         case .escape:
@@ -109,6 +120,8 @@ final class ANSIParser {
                 state = .csi
             } else if byte == 0x5D { // ]
                 state = .osc
+            } else if byte == 0x50 { // P
+                state = .dcs
             } else if byte == 0x4F { // O (SS3)
                 // Function keys on some terminals
                 state = .ground
@@ -137,6 +150,11 @@ final class ANSIParser {
                     isPasting = true
                     state = .paste
                     pasteBuffer = ""
+                } else if buffer.count == 6 && buffer[2] == 0x4D { // ESC[M (X10 mouse)
+                    if let mouse = parseMouseX10(buffer) {
+                        messages.append(mouse)
+                    }
+                    buffer = []
                 } else if let message = parseCSISequence(buffer) {
                     messages.append(message)
                 }
@@ -150,6 +168,19 @@ final class ANSIParser {
             if byte == 0x07 || (buffer.count >= 2 && buffer[buffer.count - 2] == 0x1B && byte == 0x5C) {
                 state = .ground
                 // Handle OSC sequences (like window title)
+                buffer = []
+            }
+
+        case .dcs:
+            buffer.append(byte)
+
+            // DCS sequences end with ST (ESC \)
+            if buffer.count >= 2 && buffer[buffer.count - 2] == 0x1B && byte == 0x5C {
+                state = .ground
+                // Handle DCS sequences
+                if let message = parseDCSSequence(buffer) {
+                    messages.append(message)
+                }
                 buffer = []
             }
 
@@ -187,62 +218,62 @@ final class ANSIParser {
         return messages.isEmpty ? nil : messages
     }
 
-    private func parseControlChar(_ byte: UInt8) -> Key? {
+    private func parseControlChar(_ byte: UInt8) -> KeyMsg? {
         switch byte {
-        case 0x00: Key(type: .null)
-        case 0x01: Key(type: .control("a"))
-        case 0x02: Key(type: .control("b"))
-        case 0x03: Key(type: .control("c"))
-        case 0x04: Key(type: .control("d"))
-        case 0x05: Key(type: .control("e"))
-        case 0x06: Key(type: .control("f"))
-        case 0x07: Key(type: .control("g"))
-        case 0x08: Key(type: .backspace)
-        case 0x09: Key(type: .tab)
-        case 0x0A, 0x0D: Key(type: .enter)
-        case 0x0B: Key(type: .control("k"))
-        case 0x0C: Key(type: .control("l"))
-        case 0x0E: Key(type: .control("n"))
-        case 0x0F: Key(type: .control("o"))
-        case 0x10: Key(type: .control("p"))
-        case 0x11: Key(type: .control("q"))
-        case 0x12: Key(type: .control("r"))
-        case 0x13: Key(type: .control("s"))
-        case 0x14: Key(type: .control("t"))
-        case 0x15: Key(type: .control("u"))
-        case 0x16: Key(type: .control("v"))
-        case 0x17: Key(type: .control("w"))
-        case 0x18: Key(type: .control("x"))
-        case 0x19: Key(type: .control("y"))
-        case 0x1A: Key(type: .control("z"))
-        case 0x1B: Key(type: .escape)
-        case 0x1C: Key(type: .control("\\"))
-        case 0x1D: Key(type: .control("]"))
-        case 0x1E: Key(type: .control("^"))
-        case 0x1F: Key(type: .control("_"))
+        case 0x00: KeyMsg(type: .null)
+        case 0x01: KeyMsg(type: .ctrlA)
+        case 0x02: KeyMsg(type: .ctrlB)
+        case 0x03: KeyMsg(type: .ctrlC)
+        case 0x04: KeyMsg(type: .ctrlD)
+        case 0x05: KeyMsg(type: .ctrlE)
+        case 0x06: KeyMsg(type: .ctrlF)
+        case 0x07: KeyMsg(type: .ctrlG)
+        case 0x08: KeyMsg(type: .backspace)
+        case 0x09: KeyMsg(type: .tab)
+        case 0x0A, 0x0D: KeyMsg(type: .enter)
+        case 0x0B: KeyMsg(type: .ctrlK)
+        case 0x0C: KeyMsg(type: .ctrlL)
+        case 0x0E: KeyMsg(type: .ctrlN)
+        case 0x0F: KeyMsg(type: .ctrlO)
+        case 0x10: KeyMsg(type: .ctrlP)
+        case 0x11: KeyMsg(type: .ctrlQ)
+        case 0x12: KeyMsg(type: .ctrlR)
+        case 0x13: KeyMsg(type: .ctrlS)
+        case 0x14: KeyMsg(type: .ctrlT)
+        case 0x15: KeyMsg(type: .ctrlU)
+        case 0x16: KeyMsg(type: .ctrlV)
+        case 0x17: KeyMsg(type: .ctrlW)
+        case 0x18: KeyMsg(type: .ctrlX)
+        case 0x19: KeyMsg(type: .ctrlY)
+        case 0x1A: KeyMsg(type: .ctrlZ)
+        case 0x1B: KeyMsg(type: .escape)
+        case 0x1C: KeyMsg(type: .ctrlBackslash)
+        case 0x1D: KeyMsg(type: .ctrlCloseBracket)
+        case 0x1E: KeyMsg(type: .ctrlCaret)
+        case 0x1F: KeyMsg(type: .ctrlUnderscore)
         default: nil
         }
     }
 
-    private func parseEscapeSequence(_ buffer: [UInt8]) -> Key? {
+    private func parseEscapeSequence(_ buffer: [UInt8]) -> KeyMsg? {
         // Simple Alt+key detection
         if buffer.count == 2 {
             let scalar = UnicodeScalar(buffer[1])
             let char = Character(scalar)
-            return Key(character: char, alt: true)
+            return KeyMsg(character: char, alt: true)
         }
         return nil
     }
 
-    private func parseSS3Sequence(_ buffer: [UInt8]) -> Key? {
+    private func parseSS3Sequence(_ buffer: [UInt8]) -> KeyMsg? {
         // Function keys using SS3 (ESC O)
         guard buffer.count == 3 else { return nil }
 
         switch buffer[2] {
-        case 0x50: return Key(type: .function(1))
-        case 0x51: return Key(type: .function(2))
-        case 0x52: return Key(type: .function(3))
-        case 0x53: return Key(type: .function(4))
+        case 0x50: return KeyMsg(type: .f1)
+        case 0x51: return KeyMsg(type: .f2)
+        case 0x52: return KeyMsg(type: .f3)
+        case 0x53: return KeyMsg(type: .f4)
         default: return nil
         }
     }
@@ -254,16 +285,16 @@ final class ANSIParser {
 
         // Arrow keys
         switch sequence {
-        case "A": return Key(type: .up)
-        case "B": return Key(type: .down)
-        case "C": return Key(type: .right)
-        case "D": return Key(type: .left)
-        case "H": return Key(type: .home)
-        case "F": return Key(type: .end)
-        case "5~": return Key(type: .pageUp)
-        case "6~": return Key(type: .pageDown)
-        case "2~": return Key(type: .insert)
-        case "3~": return Key(type: .delete)
+        case "A": return KeyMsg(type: .up)
+        case "B": return KeyMsg(type: .down)
+        case "C": return KeyMsg(type: .right)
+        case "D": return KeyMsg(type: .left)
+        case "H": return KeyMsg(type: .home)
+        case "F": return KeyMsg(type: .end)
+        case "5~": return KeyMsg(type: .pageUp)
+        case "6~": return KeyMsg(type: .pageDown)
+        case "2~": return KeyMsg(type: .insert)
+        case "3~": return KeyMsg(type: .delete)
         default: break
         }
 
@@ -272,17 +303,30 @@ final class ANSIParser {
             let numberPart = sequence.dropLast()
             if let num = Int(numberPart) {
                 switch num {
-                case 11...15: return Key(type: .function(num - 10))
-                case 17...21: return Key(type: .function(num - 11))
-                case 23...24: return Key(type: .function(num - 12))
+                case 11: return KeyMsg(type: .f1)
+                case 12: return KeyMsg(type: .f2)
+                case 13: return KeyMsg(type: .f3)
+                case 14: return KeyMsg(type: .f4)
+                case 15: return KeyMsg(type: .f5)
+                case 17: return KeyMsg(type: .f6)
+                case 18: return KeyMsg(type: .f7)
+                case 19: return KeyMsg(type: .f8)
+                case 20: return KeyMsg(type: .f9)
+                case 21: return KeyMsg(type: .f10)
+                case 23: return KeyMsg(type: .f11)
+                case 24: return KeyMsg(type: .f12)
                 default: break
                 }
             }
         }
 
-        // Mouse events (SGR mode)
+        // Mouse events
         if sequence.hasPrefix("<") {
+            // SGR mode
             return parseMouseSGR(sequence)
+        } else if sequence.hasPrefix("M") && buffer.count == 6 {
+            // X10 mode
+            return parseMouseX10(buffer)
         }
 
         // Focus events
@@ -295,7 +339,7 @@ final class ANSIParser {
         return UnknownCSISequenceMsg(bytes: buffer)
     }
 
-    private func parseMouseSGR(_ sequence: String) -> MouseEvent? {
+    private func parseMouseSGR(_ sequence: String) -> MouseMsg? {
         // SGR mouse format: <button;x;y[M/m]
         guard sequence.hasPrefix("<") else { return nil }
 
@@ -316,15 +360,15 @@ final class ANSIParser {
         case 0: .left
         case 1: .middle
         case 2: .right
-        case 3: .noButton // Motion only
-        default: .noButton
+        case 3: .none // Motion only
+        default: .none
         }
 
         let shift = (modifiers & 0x01) != 0
         let alt = (modifiers & 0x02) != 0
         let ctrl = (modifiers & 0x04) != 0
 
-        return MouseEvent(
+        let event = MouseEvent(
             x: x - 1, // Convert from 1-based to 0-based
             y: y - 1,
             shift: shift,
@@ -333,5 +377,100 @@ final class ANSIParser {
             action: action,
             button: button
         )
+        return MouseMsg(event)
+    }
+    
+    private func parseMouseX10(_ buffer: [UInt8]) -> MouseMsg? {
+        // X10 mouse format: ESC[M<button><x><y>
+        // Buffer: [ESC, '[', 'M', button+32, x+32, y+32]
+        guard buffer.count == 6 else { return nil }
+        
+        let buttonByte = buffer[3] - 32
+        let x = Int(buffer[4] - 32)
+        let y = Int(buffer[5] - 32)
+        
+        // X10 button encoding:
+        // bits 0-1: button (0=left, 1=middle, 2=right, 3=release)
+        // bit 2: shift
+        // bit 3: meta/alt
+        // bit 4: ctrl
+        // bits 5-6: motion flags
+        
+        let buttonCode = buttonByte & 0x03
+        let shift = (buttonByte & 0x04) != 0
+        let alt = (buttonByte & 0x08) != 0
+        let ctrl = (buttonByte & 0x10) != 0
+        let motion = (buttonByte & 0x20) != 0
+        
+        // Determine button and action
+        let button: MouseButton
+        let action: MouseAction
+        
+        if buttonCode == 3 {
+            // Release event
+            button = .none
+            action = .release
+        } else if motion {
+            // Motion event with button pressed
+            switch buttonCode {
+            case 0: button = .left
+            case 1: button = .middle
+            case 2: button = .right
+            default: button = .none
+            }
+            action = .motion
+        } else {
+            // Regular button press
+            switch buttonCode {
+            case 0: button = .left
+            case 1: button = .middle
+            case 2: button = .right
+            default: button = .none
+            }
+            action = .press
+        }
+        
+        // Check for wheel events (X10 encodes them specially)
+        let wheelButton: MouseButton? = if buttonByte >= 64 && buttonByte <= 67 {
+            switch buttonByte {
+            case 64: .wheelUp
+            case 65: .wheelDown
+            case 66: .wheelLeft
+            case 67: .wheelRight
+            default: nil
+            }
+        } else {
+            nil
+        }
+        
+        let finalButton = wheelButton ?? button
+        let finalAction: MouseAction = wheelButton != nil ? .press : action
+        
+        let event = MouseEvent(
+            x: x - 1, // Convert from 1-based to 0-based
+            y: y - 1,
+            shift: shift,
+            alt: alt,
+            ctrl: ctrl,
+            action: finalAction,
+            button: finalButton
+        )
+        return MouseMsg(event)
+    }
+    
+    private func parseDCSSequence(_ buffer: [UInt8]) -> (any Message)? {
+        // DCS sequence format: ESC P ... ST
+        // For now, we'll create a message to indicate we received a DCS sequence
+        // In the future, this can be expanded to handle specific DCS sequences
+        
+        // Extract the DCS content (excluding ESC P at start and ST at end)
+        guard buffer.count > 4 else { return nil }
+        
+        // The content is between ESC P and ESC \
+        let content = Array(buffer[2..<buffer.count-2])
+        
+        // For now, return an unknown DCS message
+        // In the future, we can parse specific DCS sequences here
+        return UnknownDCSSequenceMsg(bytes: content)
     }
 }

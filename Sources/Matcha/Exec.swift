@@ -1,153 +1,123 @@
+//
+//  Exec.swift
+//  Matcha
+//
+//  Exec command implementation for running external processes.
+//
+
 import Foundation
 
-/// Error thrown when a process execution fails
-public struct ExecProcessError: Error, LocalizedError {
-    public let status: Int
-    
-    public init(status: Int) {
-        self.status = status
-    }
-    
-    public var errorDescription: String? {
-        "Process exited with non-zero status: \(status)"
+/// execMsg is used internally to run an ExecCommand sent with Exec.
+struct ExecMsg: Message {
+    let cmd: any ExecCommand
+    let fn: ExecCallback?
+}
+
+/// Exec is used to perform arbitrary I/O in a blocking fashion, effectively
+/// pausing the Program while execution is running and resuming it when
+/// execution has completed.
+///
+/// Most of the time you'll want to use ExecProcess, which runs a Process.
+///
+/// For non-interactive i/o you should use a Cmd (that is, a tea.Cmd).
+public func Exec<M: Message>(_ c: any ExecCommand, _ fn: ExecCallback? = nil) -> Command<M> {
+    Command { () async -> M? in
+        ExecMsg(cmd: c, fn: fn) as? M
     }
 }
 
-/// Protocol for commands that can be executed in a blocking fashion
+/// ExecProcess runs the given Process in a blocking fashion, effectively
+/// pausing the Program while the command is running. After the Process exits
+/// the Program resumes. It's useful for spawning other interactive applications
+/// such as editors and shells from within a Program.
+///
+/// To produce the command, pass a Process and a function which returns
+/// a message containing the error which may have occurred when running the
+/// ExecCommand.
+///
+///     struct VimFinishedMsg: Message {
+///         let err: Error?
+///     }
+///
+///     let p = Process()
+///     p.executableURL = URL(fileURLWithPath: "/usr/bin/vim")
+///     p.arguments = ["file.txt"]
+///
+///     let cmd = ExecProcess(p) { err in
+///         VimFinishedMsg(err: err)
+///     }
+///
+/// Or, if you don't care about errors, you could simply:
+///
+///     let cmd = ExecProcess(myProcess, nil)
+///
+/// For non-interactive i/o you should use a Cmd (that is, a tea.Cmd).
+public func ExecProcess<M: Message>(_ p: Process, _ fn: ExecCallback? = nil) -> Command<M> {
+    Exec(ProcessCommand(p), fn)
+}
+
+/// ExecCallback is used when executing a Process to return a message
+/// with an error, which may or may not be nil.
+public typealias ExecCallback = @Sendable (Error?) -> any Message
+
+/// ExecCommand can be implemented to execute things in a blocking fashion in
+/// the current terminal.
 public protocol ExecCommand: Sendable {
     func run() throws
-    func setStdin(_ reader: FileHandle?)
-    func setStdout(_ writer: FileHandle?)
-    func setStderr(_ writer: FileHandle?)
+    func setStdin(_ reader: FileHandle)
+    func setStdout(_ writer: FileHandle)
+    func setStderr(_ writer: FileHandle)
 }
 
-/// Callback type for execution completion
-public typealias ExecCallback = @Sendable (Error?) -> Message
-
-/// Internal message for running exec commands
-struct ExecMessage: Message {
-    let command: ExecCommand
-    let callback: ExecCallback?
-    let stdin: FileHandle?
-    let stdout: FileHandle?
-    let stderr: FileHandle?
-    
-    init(command: ExecCommand, callback: ExecCallback?, stdin: FileHandle? = nil, stdout: FileHandle? = nil, stderr: FileHandle? = nil) {
-        self.command = command
-        self.callback = callback
-        self.stdin = stdin
-        self.stdout = stdout
-        self.stderr = stderr
-    }
-}
-
-/// Message type for exec command completion
-public struct ExecFinishedMessage: Message {
-    public let error: Error?
-    
-    public init(error: Error? = nil) {
-        self.error = error
-    }
-}
-
-/// Execute a command in a blocking fashion, pausing the program while execution runs
-public func exec<M: Message>(_ command: ExecCommand, callback: ExecCallback? = nil) -> Command<M> {
-    return Command<M> { () -> M? in
-        ExecMessage(
-            command: command, 
-            callback: callback,
-            stdin: FileHandle.standardInput,
-            stdout: FileHandle.standardOutput,
-            stderr: FileHandle.standardError
-        ) as? M
-    }
-}
-
-/// Execute a Process in a blocking fashion
-public func execProcess<M: Message>(_ process: Process, callback: ExecCallback? = nil) -> Command<M> {
-    let command = ProcessExecCommand(process: process)
-    return exec(command, callback: callback)
-}
-
-/// Wrapper around Process to implement ExecCommand
-public final class ProcessExecCommand: ExecCommand {
+/// ProcessCommand wraps a Process so that it satisfies the ExecCommand
+/// interface so it can be used with Exec.
+final class ProcessCommand: ExecCommand, @unchecked Sendable {
     private let process: Process
     
-    public init(process: Process) {
+    init(_ process: Process) {
         self.process = process
     }
     
-    public func run() throws {
-        try process.run()
-        process.waitUntilExit()
-        
-        // Check if the process exited with an error
-        if process.terminationStatus != 0 {
-            throw ExecProcessError(status: Int(process.terminationStatus))
-        }
-    }
-    
-    public func setStdin(_ reader: FileHandle?) {
+    /// SetStdin sets stdin on underlying Process to the given FileHandle.
+    func setStdin(_ reader: FileHandle) {
+        // If unset, have the command use the same input as the terminal.
         if process.standardInput == nil {
             process.standardInput = reader
         }
     }
     
-    public func setStdout(_ writer: FileHandle?) {
+    /// SetStdout sets stdout on underlying Process to the given FileHandle.
+    func setStdout(_ writer: FileHandle) {
+        // If unset, have the command use the same output as the terminal.
         if process.standardOutput == nil {
             process.standardOutput = writer
         }
     }
     
-    public func setStderr(_ writer: FileHandle?) {
+    /// SetStderr sets stderr on the underlying Process to the given FileHandle.
+    func setStderr(_ writer: FileHandle) {
+        // If unset, use stderr for the command's stderr
         if process.standardError == nil {
             process.standardError = writer
         }
     }
+    
+    func run() throws {
+        try process.run()
+        process.waitUntilExit()
+        
+        // Check termination status
+        if process.terminationStatus != 0 {
+            throw ProcessError(terminationStatus: process.terminationStatus)
+        }
+    }
 }
 
-// MARK: - Program Extension
-extension Program {
-    func executeCommand(_ command: ExecCommand, callback: ExecCallback?, stdin: FileHandle?, stdout: FileHandle?, stderr: FileHandle?) {
-        Task { @MainActor in
-            // Release terminal before executing
-            do {
-                try await releaseTerminal()
-            } catch {
-                if let callback = callback {
-                    send(callback(error))
-                }
-                return
-            }
-            
-            // Set up I/O
-            command.setStdin(stdin ?? FileHandle.standardInput)
-            command.setStdout(stdout ?? FileHandle.standardOutput)
-            command.setStderr(stderr ?? FileHandle.standardError)
-            
-            // Execute the command
-            do {
-                try command.run()
-                
-                // Restore terminal
-                do {
-                    try await restoreTerminal()
-                    if let callback = callback {
-                        send(callback(nil))
-                    }
-                } catch {
-                    if let callback = callback {
-                        send(callback(error))
-                    }
-                }
-            } catch {
-                // Try to restore terminal even on error
-                _ = try? await restoreTerminal()
-                
-                if let callback = callback {
-                    send(callback(error))
-                }
-            }
-        }
+/// Error thrown when a process exits with non-zero status
+public struct ProcessError: Error, LocalizedError {
+    public let terminationStatus: Int32
+    
+    public var errorDescription: String? {
+        "Process exited with status \(terminationStatus)"
     }
 }

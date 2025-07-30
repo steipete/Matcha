@@ -132,4 +132,50 @@ public final actor NilRenderer: Renderer {
     public func resetLinesRendered() async {
         // No-op
     }
+    
+    // MARK: - Scroll Area Support
+    
+    public func syncScrollArea(lines: [String], topBoundary: Int, bottomBoundary: Int) async {
+        // No-op
+    }
+    
+    public func scrollUp(newLines: [String], topBoundary: Int, bottomBoundary: Int) async {
+        // No-op
+    }
+    
+    public func scrollDown(newLines: [String], topBoundary: Int, bottomBoundary: Int) async {
+        // No-op
+    }
+    
+    public func clearScrollArea() async {
+        // No-op
+    }
+    
+    // MARK: - Ignored Lines Support
+    
+    public func setIgnoredLineRanges(_ ranges: [Range<Int>]) async {
+        // No-op
+    }
+    
+    public func setIgnoredLinePatterns(_ patterns: [String]) async {
+        // No-op
+    }
+    
+    public func clearIgnoredLines() async {
+        // No-op
+    }
+    
+    public func setTerminalSize(width: Int, height: Int) async {
+        // No-op
+    }
+    
+    public var terminalSize: (width: Int, height: Int) {
+        get async {
+            (width: 80, height: 24)
+        }
+    }
+    
+    public func queueMessageLine(_ line: String) async {
+        // No-op
+    }
 }

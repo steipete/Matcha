@@ -7,29 +7,37 @@
 
 import Foundation
 
-/// Represents a mouse event
-public struct MouseEvent: Message, Equatable {
+/// MouseMsg contains information about a mouse event and are sent to a programs
+/// update function when mouse activity occurs. Note that the mouse must first
+/// be enabled in order for the mouse events to be received.
+public struct MouseMsg: Message, Sendable {
+    /// The underlying mouse event
+    private let event: MouseEvent
+    
     /// X coordinate of the mouse event (0-based)
-    public let x: Int
-
+    public var x: Int { event.x }
+    
     /// Y coordinate of the mouse event (0-based)
-    public let y: Int
-
+    public var y: Int { event.y }
+    
     /// Whether the Shift key was held during the event
-    public let shift: Bool
-
+    public var shift: Bool { event.shift }
+    
     /// Whether the Alt/Option key was held during the event
-    public let alt: Bool
-
+    public var alt: Bool { event.alt }
+    
     /// Whether the Control key was held during the event
-    public let ctrl: Bool
-
+    public var ctrl: Bool { event.ctrl }
+    
     /// The type of mouse action
-    public let action: MouseAction
-
+    public var action: MouseAction { event.action }
+    
     /// The mouse button involved in the event
-    public let button: MouseButton
-
+    public var button: MouseButton { event.button }
+    
+    /// Deprecated: Use action and button instead
+    public var type: MouseEventType { event.type }
+    
     public init(
         x: Int,
         y: Int,
@@ -37,7 +45,53 @@ public struct MouseEvent: Message, Equatable {
         alt: Bool = false,
         ctrl: Bool = false,
         action: MouseAction,
-        button: MouseButton = .noButton
+        button: MouseButton = .none
+    ) {
+        self.event = MouseEvent(
+            x: x, y: y,
+            shift: shift, alt: alt, ctrl: ctrl,
+            action: action, button: button,
+            type: MouseEventType.unknown // Will be computed
+        )
+    }
+    
+    public init(_ event: MouseEvent) {
+        self.event = event
+    }
+}
+
+// MARK: - String Representation
+
+extension MouseMsg: CustomStringConvertible {
+    /// Returns a string representation of a mouse event.
+    public var description: String {
+        event.description
+    }
+}
+
+/// MouseEvent represents a mouse event, which could be a click, a scroll wheel
+/// movement, a cursor movement, or a combination.
+public struct MouseEvent: Equatable, Sendable {
+    public let x: Int
+    public let y: Int
+    public let shift: Bool
+    public let alt: Bool
+    public let ctrl: Bool
+    public let action: MouseAction
+    public let button: MouseButton
+    
+    /// Deprecated: Use MouseAction & MouseButton instead.
+    public let type: MouseEventType
+    
+    public init(
+        x: Int,
+        y: Int,
+        shift: Bool = false,
+        alt: Bool = false,
+        ctrl: Bool = false,
+        action: MouseAction,
+        button: MouseButton = .none,
+        type: MouseEventType = .unknown
     ) {
         self.x = x
         self.y = y
@@ -46,59 +100,146 @@ public struct MouseEvent: Message, Equatable {
         self.ctrl = ctrl
         self.action = action
         self.button = button
+        self.type = type
     }
 }
 
-/// The type of mouse action
-public enum MouseAction: Sendable, Equatable {
-    /// Mouse button was pressed
-    case press
+// MARK: - Mouse Event Methods
 
-    /// Mouse button was released
-    case release
-
-    /// Mouse moved (with or without buttons pressed)
-    case motion
+extension MouseEvent {
+    /// IsWheel returns true if the mouse event is a wheel event.
+    public var isWheel: Bool {
+        button == .wheelUp || button == .wheelDown ||
+        button == .wheelLeft || button == .wheelRight
+    }
 }
 
-/// The mouse button involved in an event
-public enum MouseButton: Sendable, Equatable {
-    /// No specific button (used for motion without buttons)
-    case noButton
+// MARK: - String Representation
 
-    /// Left mouse button
-    case left
-
-    /// Middle mouse button (wheel click)
-    case middle
-
-    /// Right mouse button
-    case right
-
-    /// Mouse wheel scrolled up
-    case wheelUp
-
-    /// Mouse wheel scrolled down
-    case wheelDown
-
-    /// Mouse wheel scrolled left (horizontal scroll)
-    case wheelLeft
-
-    /// Mouse wheel scrolled right (horizontal scroll)
-    case wheelRight
-
-    /// Back button (button 4)
-    case backward
-
-    /// Forward button (button 5)
-    case forward
-
-    /// Additional numbered buttons (6+)
-    case button(Int)
+extension MouseEvent: CustomStringConvertible {
+    /// Returns a string representation of a mouse event.
+    public var description: String {
+        var s = ""
+        
+        if ctrl {
+            s += "ctrl+"
+        }
+        if alt {
+            s += "alt+"
+        }
+        if shift {
+            s += "shift+"
+        }
+        
+        if button == .none {
+            if action == .motion || action == .release {
+                s += mouseActions[action] ?? "unknown"
+            } else {
+                s += "unknown"
+            }
+        } else if isWheel {
+            s += mouseButtons[button] ?? ""
+        } else {
+            if let btn = mouseButtons[button] {
+                s += btn
+            }
+            if let act = mouseActions[action] {
+                s += " " + act
+            }
+        }
+        
+        return s
+    }
 }
 
-/// Type alias for compatibility with Bubble Tea
-public typealias MouseMsg = MouseEvent
+/// MouseAction represents the action that occurred during a mouse event.
+public enum MouseAction: Int, Sendable {
+    case press = 0
+    case release = 1
+    case motion = 2
+}
+
+private let mouseActions: [MouseAction: String] = [
+    .press: "press",
+    .release: "release",
+    .motion: "motion"
+]
+
+/// MouseButton represents the button that was pressed during a mouse event.
+public enum MouseButton: Int, Sendable {
+    /// Mouse event buttons
+    ///
+    /// This is based on X11 mouse button codes.
+    ///
+    ///    1 = left button
+    ///    2 = middle button (pressing the scroll wheel)
+    ///    3 = right button
+    ///    4 = turn scroll wheel up
+    ///    5 = turn scroll wheel down
+    ///    6 = push scroll wheel left
+    ///    7 = push scroll wheel right
+    ///    8 = 4th button (aka browser backward button)
+    ///    9 = 5th button (aka browser forward button)
+    ///    10+ = additional buttons
+    case none = 0
+    case left = 1
+    case middle = 2
+    case right = 3
+    case wheelUp = 4
+    case wheelDown = 5
+    case wheelLeft = 6
+    case wheelRight = 7
+    case backward = 8
+    case forward = 9
+    case button10 = 10
+    case button11 = 11
+    
+    /// Initialize from raw button number
+    public init(rawValue: Int) {
+        switch rawValue {
+        case 0: self = .none
+        case 1: self = .left
+        case 2: self = .middle
+        case 3: self = .right
+        case 4: self = .wheelUp
+        case 5: self = .wheelDown
+        case 6: self = .wheelLeft
+        case 7: self = .wheelRight
+        case 8: self = .backward
+        case 9: self = .forward
+        case 10: self = .button10
+        case 11: self = .button11
+        default: self = .none
+        }
+    }
+}
+
+private let mouseButtons: [MouseButton: String] = [
+    .none: "",
+    .left: "left",
+    .middle: "middle",
+    .right: "right",
+    .wheelUp: "wheel up",
+    .wheelDown: "wheel down",
+    .wheelLeft: "wheel left",
+    .wheelRight: "wheel right",
+    .backward: "backward",
+    .forward: "forward",
+    .button10: "button 10",
+    .button11: "button 11"
+]
+
+/// MouseEventType represents the type of mouse event (deprecated).
+public enum MouseEventType: String, Sendable {
+    case unknown = "unknown"
+    case motion = "motion"
+    case release = "release"
+    case press = "press"
+    case wheelUp = "wheel up"
+    case wheelDown = "wheel down"
+    case wheelLeft = "wheel left"
+    case wheelRight = "wheel right"
+}
 
 // MARK: - Mouse Event Extensions
 
@@ -113,72 +254,8 @@ public extension MouseEvent {
         action == .press && button == .right
     }
 
-    /// Returns true if this is a wheel event
-    var isWheel: Bool {
-        switch button {
-        case .wheelUp, .wheelDown, .wheelLeft, .wheelRight:
-            true
-        default:
-            false
-        }
-    }
-
     /// Returns true if any modifier key is pressed
     var hasModifier: Bool {
         shift || alt || ctrl
-    }
-}
-
-// MARK: - String Representation
-
-extension MouseEvent: CustomStringConvertible {
-    public var description: String {
-        var parts: [String] = []
-
-        // Add modifiers
-        if ctrl { parts.append("ctrl") }
-        if alt { parts.append("alt") }
-        if shift { parts.append("shift") }
-
-        // Add button
-        switch button {
-        case .noButton:
-            break
-        case .left:
-            parts.append("left")
-        case .middle:
-            parts.append("middle")
-        case .right:
-            parts.append("right")
-        case .wheelUp:
-            parts.append("wheelup")
-        case .wheelDown:
-            parts.append("wheeldown")
-        case .wheelLeft:
-            parts.append("wheelleft")
-        case .wheelRight:
-            parts.append("wheelright")
-        case .backward:
-            parts.append("back")
-        case .forward:
-            parts.append("forward")
-        case let .button(n):
-            parts.append("button\(n)")
-        }
-
-        // Add action
-        switch action {
-        case .press:
-            parts.append("press")
-        case .release:
-            parts.append("release")
-        case .motion:
-            parts.append("motion")
-        }
-
-        // Add coordinates
-        parts.append("(\(x),\(y))")
-
-        return parts.joined(separator: "+")
     }
 }

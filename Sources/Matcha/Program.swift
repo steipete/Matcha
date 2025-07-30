@@ -42,6 +42,18 @@ public struct ProgramOptions: Sendable {
     /// Environment variables
     public var environment: [String: String] = ProcessInfo.processInfo.environment
 
+    /// External context to use for the program
+    public var context: Task<Void, Never>?
+
+    /// Whether to use TTY for input even if stdin is not a TTY
+    public var forceTTY: Bool = false
+
+    /// Whether to disable signal handling entirely
+    public var disableSignals: Bool = false
+
+    /// Whether to disable the renderer (for headless operation)
+    public var disableRenderer: Bool = false
+
     /// Default options
     public static let `default` = ProgramOptions()
 
@@ -68,6 +80,178 @@ public enum ProgramError: Error, Sendable {
     case interrupted
     /// Terminal I/O error
     case terminalError(Error)
+}
+
+// MARK: - Program Option Helpers
+
+/// Type alias for program option functions
+public typealias ProgramOption = (inout ProgramOptions) -> Void
+
+/// Create a new program with the given model and options
+@MainActor
+public func NewProgram<M: Model>(_ model: M, _ opts: ProgramOption...) -> Program<M> {
+    var options = ProgramOptions.default
+    for opt in opts {
+        opt(&options)
+    }
+    return Program(initialModel: model, options: options)
+}
+
+/// WithOutput sets the output which, by default, is stdout. In most cases you
+/// won't need to use this.
+public func WithOutput(_ output: any TextOutputStream & Sendable) -> ProgramOption {
+    return { options in
+        options.output = output
+    }
+}
+
+/// WithInput sets the input which, by default, is stdin. In most cases you
+/// won't need to use this.
+public func WithInput(_ input: FileHandle) -> ProgramOption {
+    return { options in
+        options.input = input
+    }
+}
+
+/// WithInputTTY forces the program to use TTY for input even if stdin is not a TTY.
+public func WithInputTTY() -> ProgramOption {
+    return { options in
+        options.forceTTY = true
+    }
+}
+
+/// WithEnvironment sets the environment variables that the program will use.
+/// This useful when the program is running in a remote session (e.g. SSH) and
+/// you want to pass the environment variables from the remote session to the
+/// program.
+public func WithEnvironment(_ env: [String: String]) -> ProgramOption {
+    return { options in
+        options.environment = env
+    }
+}
+
+/// WithoutSignalHandler disables the signal handler that Bubble Tea sets up for
+/// Programs. This is useful if you want to handle signals yourself.
+public func WithoutSignalHandler() -> ProgramOption {
+    return { options in
+        options.handleSignals = false
+    }
+}
+
+/// WithoutCatchPanics disables the panic catching that Bubble Tea does by
+/// default. If panic catching is disabled the terminal will be in a fairly
+/// unusable state after a panic because Bubble Tea will not perform its usual
+/// cleanup on exit.
+public func WithoutCatchPanics() -> ProgramOption {
+    return { options in
+        options.catchPanics = false
+    }
+}
+
+/// WithoutSignals will ignore OS signals.
+/// This is mainly useful for testing.
+public func WithoutSignals() -> ProgramOption {
+    return { options in
+        options.disableSignals = true
+    }
+}
+
+/// WithAltScreen starts the program with the alternate screen buffer enabled
+/// (i.e. the program starts in full window mode). Note that the altscreen will
+/// be automatically exited when the program quits.
+public func WithAltScreen() -> ProgramOption {
+    return { options in
+        options.useAltScreen = true
+    }
+}
+
+/// WithoutBracketedPaste starts the program with bracketed paste disabled.
+public func WithoutBracketedPaste() -> ProgramOption {
+    return { options in
+        options.enableBracketedPaste = false
+    }
+}
+
+/// WithMouseCellMotion starts the program with the mouse enabled in "cell
+/// motion" mode.
+///
+/// Cell motion mode enables mouse click, release, and wheel events. Mouse
+/// movement events are also captured if a mouse button is pressed (i.e., drag
+/// events). Cell motion mode is better supported than all motion mode.
+public func WithMouseCellMotion() -> ProgramOption {
+    return { options in
+        options.mouseMode = .cellMotion
+    }
+}
+
+/// WithMouseAllMotion starts the program with the mouse enabled in "all motion"
+/// mode.
+///
+/// EnableMouseAllMotion is a special command that enables mouse click, release,
+/// wheel, and motion events, which are delivered regardless of whether a mouse
+/// button is pressed, effectively enabling support for hover interactions.
+public func WithMouseAllMotion() -> ProgramOption {
+    return { options in
+        options.mouseMode = .allMotion
+    }
+}
+
+/// WithoutRenderer disables the renderer. This is useful for testing and
+/// headless operation.
+public func WithoutRenderer() -> ProgramOption {
+    return { options in
+        options.disableRenderer = true
+    }
+}
+
+/// WithFPS sets the maximum FPS (frames per second) at which the renderer will
+/// run. The default is 60.
+public func WithFPS(_ fps: Int) -> ProgramOption {
+    return { options in
+        options.fps = fps
+    }
+}
+
+/// WithFilter sets a message filter function. If a filter is set, all messages
+/// will be passed through it and potentially transformed or blocked (by
+/// returning nil).
+public func WithFilter(_ filter: @escaping @Sendable (any Model, any Message) -> (any Message)?) -> ProgramOption {
+    return { options in
+        options.filter = filter
+    }
+}
+
+/// WithReportFocus enables focus reporting. When enabled, the program will
+/// receive FocusMsg and BlurMsg when the terminal gains or loses focus.
+public func WithReportFocus() -> ProgramOption {
+    return { options in
+        options.reportFocus = true
+    }
+}
+
+/// WithContext lets you specify a context in which to run the Program. This is
+/// useful if you want to cancel the execution from outside. When a Program gets
+/// cancelled it will exit with an error ErrProgramKilled.
+public func WithContext(_ context: Task<Void, Never>) -> ProgramOption {
+    return { options in
+        options.context = context
+    }
+}
+
+/// WithANSICompressor removes redundant ANSI sequences to produce potentially
+/// smaller output, at the cost of some processing overhead.
+///
+/// This feature is provisional, and may be changed or removed in a future version
+/// of this package.
+///
+/// Deprecated: this incurs a noticeable performance hit. A future release will
+/// optimize ANSI automatically without the performance penalty.
+@available(*, deprecated, message: "This incurs a noticeable performance hit. A future release will optimize ANSI automatically without the performance penalty.")
+public func WithANSICompressor() -> ProgramOption {
+    return { options in
+        // Note: In Swift implementation, we don't implement ANSI compression
+        // as it's deprecated and will be replaced with automatic optimization
+    }
 }
 
 /// The main program runner for Matcha applications
@@ -99,8 +283,20 @@ public final class Program<M: Model> {
     /// Channel for receiving messages
     private let messageChannel = AsyncChannel<any Message>()
 
+    /// Channel for receiving errors
+    private let errorChannel = AsyncChannel<Error>()
+
     /// Original terminal state for restoration
     private var originalTerminalState: TerminalState?
+
+    /// Context task for cancellation
+    private var contextTask: Task<Void, Never>?
+
+    /// Completion handler called when program finishes
+    private var finishedHandler: (@Sendable () async -> Void)?
+    
+    /// Cancel reader for input handling (similar to Bubbletea's cancelReader)
+    private var cancelReader: CancelReader?
 
     // MARK: - Initialization
 
@@ -123,20 +319,67 @@ public final class Program<M: Model> {
         isRunning = true
         defer { isRunning = false }
 
-        // Setup phase
-        try await setup()
-
-        // Run the main loop
-        await withTaskCancellationHandler {
-            await mainLoop()
-        } onCancel: {
-            Task { @MainActor in
-                await self.shutdown()
+        // Create actor to safely store error across tasks
+        let errorStore = ErrorStore()
+        
+        // Panic recovery if enabled
+        if options.catchPanics {
+            do {
+                // Setup phase
+                try await setup(errorStore: errorStore)
+                
+                // Run the main loop with panic recovery
+                await withTaskCancellationHandler {
+                    await mainLoop()
+                } onCancel: {
+                    Task { @MainActor in
+                        await self.shutdown()
+                    }
+                }
+            } catch {
+                await errorStore.setError(error)
+                await recoverFromPanic(error)
+            }
+        } else {
+            // Setup phase
+            try await setup(errorStore: errorStore)
+            
+            // Run the main loop
+            await withTaskCancellationHandler {
+                await mainLoop()
+            } onCancel: {
+                Task { @MainActor in
+                    await self.shutdown()
+                }
             }
         }
 
         // Cleanup phase
         await cleanup()
+
+        // Handle different error cases like Bubbletea
+        if let error = await errorStore.getError() {
+            // Check for context cancellation
+            if error is CancellationError {
+                // Check if external context was cancelled
+                if let context = options.context, context.isCancelled {
+                    // Return error that includes external context cancellation
+                    throw ErrProgramKilled(underlyingError: CancellationError())
+                } else {
+                    // Internal cancellation only
+                    throw ErrProgramKilled()
+                }
+            } else if let _ = error as? ErrInterrupted {
+                // Pass through interrupt errors
+                throw error
+            } else if error is ErrProgramPanic {
+                // Pass through panic errors
+                throw error
+            } else {
+                // Wrap other errors as killed with underlying error
+                throw ErrProgramKilled(underlyingError: error)
+            }
+        }
 
         return model
     }
@@ -164,6 +407,18 @@ public final class Program<M: Model> {
         await runTask?.value
     }
 
+    /// Sets a completion handler to be called when the program finishes
+    public func onFinished(_ handler: @escaping @Sendable () async -> Void) {
+        finishedHandler = handler
+    }
+
+    /// Sends an error to the error channel
+    public func sendError(_ error: Error) {
+        Task {
+            await errorChannel.send(error)
+        }
+    }
+
     /// Temporarily releases terminal control
     public func releaseTerminal() async throws {
         guard isRunning else { return }
@@ -187,8 +442,11 @@ public final class Program<M: Model> {
     public func restoreTerminal() async throws {
         guard isRunning else { return }
         
-        // Re-enter raw mode
-        try Terminal.current.enterRawMode()
+        let isTestMode = !(options.input === FileHandle.standardInput)
+        if !isTestMode {
+            // Re-enter raw mode
+            try Terminal.current.enterRawMode()
+        }
         
         // Restart the renderer
         await renderer?.start()
@@ -221,6 +479,28 @@ public final class Program<M: Model> {
         await renderer?.hideCursor()
         await renderer?.clearScreen()
         await render()
+    }
+    
+    /// Suspends the program (Ctrl+Z)
+    private func suspend() async {
+        do {
+            // Release terminal before suspending
+            try await releaseTerminal()
+            
+            // Send SIGTSTP to suspend the process
+            #if os(macOS)
+            Darwin.kill(getpid(), SIGTSTP)
+            #elseif os(Linux)
+            Glibc.kill(getpid(), SIGTSTP)
+            #endif
+            
+            // When we resume, restore terminal and send ResumeMsg
+            // Note: The actual resume will happen when SIGCONT is received
+            // which triggers the continued signal handler
+        } catch {
+            // If we can't release terminal, don't suspend
+            debugPrint("Failed to release terminal for suspension: \(error)")
+        }
     }
 
     /// Prints formatted text to the terminal output
@@ -270,25 +550,32 @@ public final class Program<M: Model> {
 
     // MARK: - Private Methods
 
-    private func setup() async throws {
-        // Save original terminal state
-        originalTerminalState = try Terminal.current.getState()
+    private func setup(errorStore: ErrorStore) async throws {
+        // Skip terminal setup if using custom input/output (e.g., in tests)
+        let isTestMode = !(options.input === FileHandle.standardInput)
+        
+        if !isTestMode {
+            // Save original terminal state
+            originalTerminalState = try Terminal.current.getState()
 
-        // Enter raw mode
-        try Terminal.current.enterRawMode()
+            // Enter raw mode
+            try Terminal.current.enterRawMode()
+        }
 
-        // Setup renderer
-        let renderer = StandardRenderer(
-            output: options.output,
-            fps: options.fps
-        )
-        self.renderer = renderer
-        await renderer.start()
+        // Setup renderer if not disabled
+        if !options.disableRenderer {
+            let renderer = StandardRenderer(
+                output: options.output,
+                fps: options.fps
+            )
+            self.renderer = renderer
+            await renderer.start()
+        }
 
         // Setup alt screen if requested
         if options.useAltScreen {
-            await renderer.enterAltScreen()
-            await renderer.clearScreen()
+            await renderer?.enterAltScreen()
+            await renderer?.clearScreen()
         }
 
         // Setup mouse mode
@@ -296,25 +583,47 @@ public final class Program<M: Model> {
         case .disabled:
             break
         case .cellMotion:
-            await renderer.enableMouseCellMotion()
+            await renderer?.enableMouseCellMotion()
         case .allMotion:
-            await renderer.enableMouseAllMotion()
+            await renderer?.enableMouseAllMotion()
         }
         
         if options.enableBracketedPaste {
-            await renderer.enableBracketedPaste()
+            await renderer?.enableBracketedPaste()
         }
         
         if options.reportFocus {
-            await renderer.enableReportFocus()
+            await renderer?.enableReportFocus()
         }
         
         // Hide cursor and clear screen for initial render
-        await renderer.hideCursor()
-        await renderer.clearScreen()
+        await renderer?.hideCursor()
+        await renderer?.clearScreen()
+        
+        // Setup context if provided and monitor for cancellation
+        if let context = options.context {
+            contextTask = context
+            
+            // Monitor external context for cancellation
+            Task {
+                await context.value
+                // External context was cancelled, send error
+                await errorChannel.send(ErrProgramKilled(underlyingError: CancellationError()))
+            }
+        }
+        
+        // Setup cancel reader
+        let asyncCancelReader = AsyncCancelReader()
+        self.cancelReader = asyncCancelReader
         
         // Setup input handler
-        let inputHandler = InputHandler(input: options.input)
+        let inputSource: FileHandle
+        if isTestMode {
+            inputSource = options.input
+        } else {
+            inputSource = options.forceTTY ? try Terminal.current.openTTY() : options.input
+        }
+        let inputHandler = InputHandler(input: inputSource, cancelReader: asyncCancelReader)
         self.inputHandler = inputHandler
         
         // Start input handling
@@ -324,8 +633,24 @@ public final class Program<M: Model> {
             }
         }
         
-        // Setup signal handlers if requested
-        if options.handleSignals {
+        // Start error handling task
+        Task {
+            for await error in errorChannel {
+                // Handle critical errors that should terminate the program
+                if error is ErrProgramKilled || error is ErrProgramPanic {
+                    // Store the error for later handling
+                    await errorStore.setError(error)
+                    // Signal to exit the main loop
+                    await messageChannel.finish()
+                } else {
+                    // Log non-critical errors
+                    debugPrint("Program error: \(error)")
+                }
+            }
+        }
+        
+        // Setup signal handlers if requested and not disabled
+        if options.handleSignals && !options.disableSignals && !isTestMode {
             SignalManager.shared.onSignal = { signal in
                 Task { @MainActor in
                     switch signal {
@@ -342,15 +667,24 @@ public final class Program<M: Model> {
                     case .terminated:
                         await self.messageChannel.send(QuitMsg())
                     case .continued:
-                        await self.messageChannel.send(ResumeMsg())
+                        // Restore terminal after suspension
+                        do {
+                            try await self.restoreTerminal()
+                            await self.messageChannel.send(ResumeMsg())
+                        } catch {
+                            debugPrint("Failed to restore terminal after suspension: \(error)")
+                        }
                     }
                 }
             }
         }
         
         // Get initial window size
-        if let size = try? Terminal.current.getSize() {
+        if !isTestMode, let size = try? Terminal.current.getSize() {
             await messageChannel.send(WindowSizeMsg(width: size.columns, height: size.rows))
+        } else if isTestMode {
+            // Send a default size for tests
+            await messageChannel.send(WindowSizeMsg(width: 80, height: 24))
         }
         
         await render()
@@ -359,6 +693,11 @@ public final class Program<M: Model> {
     private func cleanup() async {
         // Stop input handling
         inputHandler?.stop()
+        
+        // Cancel the reader
+        Task {
+            _ = await cancelReader?.cancel()
+        }
         
         // Show cursor
         await renderer?.showCursor()
@@ -381,9 +720,18 @@ public final class Program<M: Model> {
         // Stop renderer
         await renderer?.stop()
         
-        // Restore terminal state
-        if let originalState = originalTerminalState {
+        // Restore terminal state if not in test mode
+        let isTestMode = !(options.input === FileHandle.standardInput)
+        if !isTestMode, let originalState = originalTerminalState {
             try? Terminal.current.setState(originalState)
+        }
+        
+        // Cancel context if needed
+        contextTask?.cancel()
+        
+        // Call finished handler if set
+        if let handler = finishedHandler {
+            await handler()
         }
     }
 
@@ -423,9 +771,7 @@ public final class Program<M: Model> {
                 // Execute any resulting command
                 if let command {
                     Task {
-                        if let resultMessage = await command.execute() {
-                            await messageChannel.send(resultMessage)
-                        }
+                        await executeCommandWithRecovery(command)
                     }
                 }
 
@@ -443,12 +789,16 @@ public final class Program<M: Model> {
             return true
 
         case is SuspendMsg:
-            // TODO: Implement suspend functionality
+            // Handle terminal suspension (Ctrl+Z)
+            Task { @MainActor in
+                await self.suspend()
+            }
             return true
 
         case is InterruptMsg:
-            // TODO: Implement interrupt handling
-            return true
+            // Handle interrupt (Ctrl+C) - typically quits the program
+            // But we allow the model to handle it if it wants to
+            return false
 
         case let msg as SetWindowTitleMsg:
             await renderer?.setWindowTitle(msg.title)
@@ -474,10 +824,10 @@ public final class Program<M: Model> {
             await renderer?.hideCursor()
             return true
 
-        case let msg as ExecMessage:
-            // Execute the command in a separate task
+        case let msg as ExecMsg:
+            // Execute the command with proper terminal handling
             Task { @MainActor in
-                self.executeCommand(msg.command, callback: msg.callback, stdin: msg.stdin, stdout: msg.stdout, stderr: msg.stderr)
+                await self.executeExternalCommand(msg.cmd, callback: msg.fn)
             }
             return true
 
@@ -496,14 +846,30 @@ public final class Program<M: Model> {
         case is DisableBracketedPasteMsg:
             await renderer?.disableBracketedPaste()
             return true
+            
+        case is EnableMouseCellMotionMsg:
+            await renderer?.enableMouseCellMotion()
+            await renderer?.enableMouseSGRMode()
+            return true
+            
+        case is EnableMouseAllMotionMsg:
+            await renderer?.enableMouseAllMotion()
+            await renderer?.enableMouseSGRMode()
+            return true
+            
+        case is DisableMouseMsg:
+            await renderer?.disableMouseAllMotion()
+            await renderer?.disableMouseCellMotion()
+            await renderer?.disableMouseSGRMode()
+            return true
+            
+        case let msg as WindowSizeMsg:
+            await renderer?.setTerminalSize(width: msg.width, height: msg.height)
+            return false // Let the model handle it too
 
         case let msg as PrintLineMsg:
-            // Temporarily stop rendering to print
-            await renderer?.stop()
-            print("\r\u{1B}[K", terminator: "")
-            print(msg.text)
-            await renderer?.start()
-            await render()
+            // Queue the message to be printed by the renderer
+            await renderer?.queueMessageLine(msg.text)
             return true
 
         case let msg as PrintFormattedMsg:
@@ -513,6 +879,68 @@ public final class Program<M: Model> {
             print(msg.text)
             await renderer?.start()
             await render()
+            return true
+
+        case let msg as BatchMsg<M.Msg>:
+            // Execute all batched commands concurrently
+            await withTaskGroup(of: Void.self) { group in
+                for command in msg.commands {
+                    group.addTask {
+                        await self.executeCommandWithRecovery(command)
+                    }
+                }
+            }
+            return true
+            
+        case let msg as SequenceMsg<M.Msg>:
+            // Execute commands sequentially
+            for command in msg.commands {
+                await executeCommandWithRecovery(command)
+            }
+            return true
+
+        case is RepaintMsg:
+            await renderer?.repaint()
+            await render()
+            return true
+
+        case let msg as ScrollSyncMsg:
+            await renderer?.syncScrollArea(
+                lines: msg.lines,
+                topBoundary: msg.topBoundary,
+                bottomBoundary: msg.bottomBoundary
+            )
+            return true
+
+        case let msg as ScrollUpMsg:
+            await renderer?.scrollUp(
+                newLines: msg.lines,
+                topBoundary: msg.topBoundary,
+                bottomBoundary: msg.bottomBoundary
+            )
+            return true
+
+        case let msg as ScrollDownMsg:
+            await renderer?.scrollDown(
+                newLines: msg.lines,
+                topBoundary: msg.topBoundary,
+                bottomBoundary: msg.bottomBoundary
+            )
+            return true
+
+        case is ClearScrollAreaMsg:
+            await renderer?.clearScrollArea()
+            return true
+            
+        case is WindowSizeRequestMsg:
+            // Query terminal size and send WindowSizeMsg
+            let isTestMode = !(options.input === FileHandle.standardInput)
+            if !isTestMode, let size = try? Terminal.current.getSize() {
+                await messageChannel.send(WindowSizeMsg(width: size.columns, height: size.rows))
+            } else if isTestMode {
+                // Send default size for tests
+                await messageChannel.send(WindowSizeMsg(width: 80, height: 24))
+            }
             return true
 
         default:
@@ -530,6 +958,137 @@ public final class Program<M: Model> {
         await messageChannel.finish()
         await cleanup()
     }
+    
+    /// Recovers from a panic, prints the stack trace, and restores terminal state
+    private func recoverFromPanic(_ error: Error) async {
+        // Send error to error channel
+        await errorChannel.send(ErrProgramPanic())
+        
+        // Shutdown the program
+        await shutdown()
+        
+        // Print panic information
+        print("\nCaught panic:\n\n\(error)\n\nRestoring terminal...\n")
+        
+        // Print stack trace if available
+        if let nsError = error as NSError? {
+            if let stackTrace = nsError.userInfo[NSUnderlyingErrorKey] as? String {
+                print("Stack trace:\n\(stackTrace)\n")
+            }
+        }
+        
+        // In Swift, we can use Thread.callStackSymbols for stack trace
+        let symbols = Thread.callStackSymbols
+        print("Call stack:\n\(symbols.joined(separator: "\n"))\n")
+    }
+    
+    /// Executes a command with panic recovery
+    private func executeCommandWithRecovery<Msg: Message>(_ command: Command<Msg>) async {
+        // Note: In Swift, we can't directly catch panics like Go's recover()
+        // However, we can handle Task cancellation and other errors
+        if let resultMessage = await command.execute() {
+            await messageChannel.send(resultMessage)
+        }
+    }
+    
+    /// Executes an external command (like vim) with proper terminal handling
+    private func executeExternalCommand(_ cmd: any ExecCommand, callback: ExecCallback?) async {
+        do {
+            // Release terminal before running command
+            try await releaseTerminal()
+            
+            // Set up command I/O
+            cmd.setStdin(options.input)
+            cmd.setStdout(FileHandle.standardOutput)
+            cmd.setStderr(FileHandle.standardError)
+            
+            // Run the command
+            var cmdError: Error?
+            do {
+                try cmd.run()
+            } catch {
+                cmdError = error
+            }
+            
+            // Restore terminal after command finishes
+            try await restoreTerminal()
+            
+            // Call the callback if provided
+            if let callback = callback {
+                let message = callback(cmdError)
+                await messageChannel.send(message)
+            }
+        } catch {
+            // If we fail to release/restore terminal, recover from panic
+            if options.catchPanics {
+                await recoverFromPanic(error)
+            }
+        }
+    }
+    
+    // MARK: - Deprecated Methods
+    
+    /// EnterAltScreen enters the alternate screen buffer, which consumes the entire
+    /// terminal window. ExitAltScreen will return the terminal to its former state.
+    ///
+    /// Deprecated: Use the WithAltScreen ProgramOption instead.
+    @available(*, deprecated, message: "Use the WithAltScreen ProgramOption instead")
+    public func enterAltScreen() async {
+        await renderer?.enterAltScreen()
+    }
+    
+    /// ExitAltScreen exits the alternate screen buffer.
+    ///
+    /// Deprecated: The altscreen will exited automatically when the program exits.
+    @available(*, deprecated, message: "The altscreen will exit automatically when the program exits")
+    public func exitAltScreen() async {
+        await renderer?.exitAltScreen()
+    }
+    
+    /// EnableMouseCellMotion enables mouse click, release, wheel and motion events
+    /// if a mouse button is pressed (i.e., drag events).
+    ///
+    /// Deprecated: Use the WithMouseCellMotion ProgramOption instead.
+    @available(*, deprecated, message: "Use the WithMouseCellMotion ProgramOption instead")
+    public func enableMouseCellMotion() async {
+        await renderer?.enableMouseCellMotion()
+    }
+    
+    /// DisableMouseCellMotion disables Mouse Cell Motion tracking. This will be
+    /// called automatically when exiting a Bubble Tea program.
+    ///
+    /// Deprecated: The mouse will automatically be disabled when the program exits.
+    @available(*, deprecated, message: "The mouse will automatically be disabled when the program exits")
+    public func disableMouseCellMotion() async {
+        await renderer?.disableMouseCellMotion()
+    }
+    
+    /// EnableMouseAllMotion enables mouse click, release, wheel and motion events,
+    /// regardless of whether a mouse button is pressed. Many modern terminals
+    /// support this, but not all.
+    ///
+    /// Deprecated: Use the WithMouseAllMotion ProgramOption instead.
+    @available(*, deprecated, message: "Use the WithMouseAllMotion ProgramOption instead")
+    public func enableMouseAllMotion() async {
+        await renderer?.enableMouseAllMotion()
+    }
+    
+    /// DisableMouseAllMotion disables All Motion mouse tracking. This will be
+    /// called automatically when exiting a Bubble Tea program.
+    ///
+    /// Deprecated: The mouse will automatically be disabled when the program exits.
+    @available(*, deprecated, message: "The mouse will automatically be disabled when the program exits")
+    public func disableMouseAllMotion() async {
+        await renderer?.disableMouseAllMotion()
+    }
+    
+    /// SetWindowTitle sets the terminal window title.
+    ///
+    /// Deprecated: Use the SetWindowTitle command instead.
+    @available(*, deprecated, message: "Use the SetWindowTitle command instead")
+    public func setWindowTitle(_ title: String) async {
+        await renderer?.setWindowTitle(title)
+    }
 }
 
 // MARK: - Supporting Types
@@ -545,8 +1104,10 @@ public struct TerminalState: Sendable {
     #endif
 
     init() {
-        #if os(macOS) || os(Linux)
+        #if os(macOS)
             termios = Darwin.termios()
+        #elseif os(Linux)
+            termios = Glibc.termios()
         #endif
     }
 }
@@ -556,6 +1117,23 @@ public enum TerminalError: Error, Sendable {
     case alreadyRunning
     case notATTY
     case rawModeError(Error)
+}
+
+// MARK: - Error Store Actor
+
+/// Actor to safely store errors across tasks
+private actor ErrorStore {
+    private var error: Error?
+    
+    func setError(_ error: Error) {
+        if self.error == nil {
+            self.error = error
+        }
+    }
+    
+    func getError() -> Error? {
+        return error
+    }
 }
 
 // MARK: - Async Channel for Message Passing
