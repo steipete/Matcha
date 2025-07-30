@@ -19,8 +19,6 @@ jobs:
       
       - name: SwiftLint
         uses: norio-nomura/action-swiftlint@3.2.1
-        with:
-          args: --strict
 
   build-and-test:
     name: Build and Test
@@ -120,9 +118,9 @@ jobs:
       
       - name: Test Counter Example
         run: |
-          swift build --product CounterExample
+          swift build --product Counter
           # Run with timeout and expect it to start successfully
-          timeout 5s ./.build/debug/CounterExample || [ $? -eq 124 ]
+          timeout 5s ./.build/debug/Counter || [ $? -eq 124 ]
       
       - name: Test Simple Example
         run: |

@@ -1,5 +1,5 @@
 # Dockerfile for testing Matcha on Linux
-FROM swift:5.10-jammy
+FROM swift:6.0-jammy
 
 # Install additional dependencies if needed
 RUN apt-get update && apt-get install -y \
@@ -11,6 +11,9 @@ WORKDIR /app
 
 # Copy package files first for better caching
 COPY Package.swift Package.resolved* ./
+
+# Copy configuration files
+COPY .swiftformat .swiftlint.yml* ./
 
 # Copy source code
 COPY Sources ./Sources

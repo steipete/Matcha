@@ -196,7 +196,7 @@ struct RendererTests {
 struct StandardRendererTests {
     @Test("Standard renderer creation and lifecycle")
     func standardRendererCreation() async throws {
-        let output = TestOutputStream()
+        let output = TestOutputStream(interpretANSI: false)
         let renderer = StandardRenderer(output: output, fps: 60)
 
         // Basic creation test - renderer should exist
@@ -224,7 +224,7 @@ struct StandardRendererTests {
 
     @Test("ANSI escape sequence output")
     func ansiOutput() async throws {
-        let output = TestOutputStream()
+        let output = TestOutputStream(interpretANSI: false)
         let renderer = StandardRenderer(output: output)
 
         await renderer.start()
