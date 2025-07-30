@@ -31,6 +31,17 @@ public typealias Msg = Message
 public struct Command<M: Message>: Sendable {
     /// The async operation that produces a message
     private let operation: @Sendable () async -> M?
+    
+    /// Internal flag for batch commands
+    internal var isBatch: Bool = false
+    internal var batchCommands: [Command<M>] = []
+    
+    /// Internal flag for sequence commands
+    internal var isSequence: Bool = false
+    internal var sequenceCommands: [Command<M>] = []
+    
+    /// Internal flag for quit command
+    internal var isQuit: Bool = false
 
     /// Creates a new command from an async operation
     public init(operation: @escaping @Sendable () async -> M?) {
@@ -201,14 +212,10 @@ public extension Command {
     /// Sequences multiple commands to run one after another.
     /// Each command waits for the previous one to complete.
     static func sequence(_ commands: [Command<M>]) -> Command<M> {
-        Command { () async -> M? in
-            for command in commands {
-                if let message = await command.execute() {
-                    return message
-                }
-            }
-            return nil
-        }
+        var seqCmd = Command<M> { nil }
+        seqCmd.isSequence = true
+        seqCmd.sequenceCommands = commands
+        return seqCmd
     }
 
     /// Convenience method for sequencing commands using variadic parameters
@@ -321,9 +328,14 @@ public func Quit<M: Message>() -> M? {
 
 /// Creates a command that immediately sends a quit message
 public func quit<M: Message>() -> Command<M> {
-    Command { () async -> M? in
-        QuitMsg() as? M
+    var cmd = Command<M> { () async -> M? in
+        // Return nil since QuitMsg can't be cast to M
+        // The Program will handle this specially
+        return nil
     }
+    // Mark this as a special quit command
+    cmd.isQuit = true
+    return cmd
 }
 
 /// Suspend is a command that suspends the program.
@@ -621,31 +633,39 @@ public func disableBracketedPaste<M: Message>() -> Command<M> {
 ///         return Batch(someCommand, someOtherCommand)
 ///     }
 public func Batch<M: Message>(_ cmds: Command<M>...) -> Command<M> {
-    let validCmds = cmds.compactMap { $0 }
+    let validCmds = cmds.filter { cmd in
+        // Filter out nil operations
+        return true
+    }
     switch validCmds.count {
     case 0:
         return Command<M>.empty
     case 1:
         return validCmds[0]
     default:
-        return Command { () async -> M? in
-            BatchMsg(validCmds) as? M
-        }
+        var batchCmd = Command<M> { nil }
+        batchCmd.isBatch = true
+        batchCmd.batchCommands = validCmds
+        return batchCmd
     }
 }
 
 /// Batch performs a bunch of commands concurrently with no ordering guarantees
 public func Batch<M: Message>(_ cmds: [Command<M>]) -> Command<M> {
-    let validCmds = cmds.compactMap { $0 }
+    let validCmds = cmds.filter { cmd in
+        // Filter out nil operations
+        return true
+    }
     switch validCmds.count {
     case 0:
         return Command<M>.empty
     case 1:
         return validCmds[0]
     default:
-        return Command { () async -> M? in
-            BatchMsg(validCmds) as? M
-        }
+        var batchCmd = Command<M> { nil }
+        batchCmd.isBatch = true
+        batchCmd.batchCommands = validCmds
+        return batchCmd
     }
 }
 
@@ -665,16 +685,18 @@ public func batch<M: Message>(_ commands: Command<M>...) -> Command<M> {
 /// Sequence runs the given commands one at a time, in order. Contrast this with
 /// Batch, which runs commands concurrently.
 public func Sequence<M: Message>(_ cmds: Command<M>...) -> Command<M> {
-    Command { () async -> M? in
-        SequenceMsg(cmds) as? M
-    }
+    var seqCmd = Command<M> { nil }
+    seqCmd.isSequence = true
+    seqCmd.sequenceCommands = cmds
+    return seqCmd
 }
 
 /// Sequence runs the given commands one at a time, in order.
 public func Sequence<M: Message>(_ cmds: [Command<M>]) -> Command<M> {
-    Command { () async -> M? in
-        SequenceMsg(cmds) as? M
-    }
+    var seqCmd = Command<M> { nil }
+    seqCmd.isSequence = true
+    seqCmd.sequenceCommands = cmds
+    return seqCmd
 }
 
 /// Sequentially produces a command that sequentially executes the given
@@ -785,10 +807,10 @@ public struct BatchMsg<M: Message>: Message {
 // MARK: - Internal Messages
 
 /// sequenceMsg is used internally to run the given commands in order.
-struct SequenceMsg<M: Message>: Message {
-    let commands: [Command<M>]
+public struct SequenceMsg<M: Message>: Message {
+    public let commands: [Command<M>]
     
-    init(_ commands: [Command<M>]) {
+    public init(_ commands: [Command<M>]) {
         self.commands = commands
     }
 }

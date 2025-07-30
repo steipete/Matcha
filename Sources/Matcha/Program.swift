@@ -53,6 +53,9 @@ public struct ProgramOptions: Sendable {
 
     /// Whether to disable the renderer (for headless operation)
     public var disableRenderer: Bool = false
+    
+    /// Whether to disable input handling (for testing)
+    public var disableInput: Bool = false
 
     /// Default options
     public static let `default` = ProgramOptions()
@@ -279,6 +282,9 @@ public final class Program<M: Model> {
 
     /// Task for the main run loop
     private var runTask: Task<Void, Never>?
+    
+    /// Kill flag to signal program termination
+    private var isKilled = false
 
     /// Channel for receiving messages
     private let messageChannel = AsyncChannel<any Message>()
@@ -297,6 +303,9 @@ public final class Program<M: Model> {
     
     /// Cancel reader for input handling (similar to Bubbletea's cancelReader)
     private var cancelReader: CancelReader?
+    
+    /// Queue for messages sent before run() is called
+    private var earlyMessageQueue: [any Message] = []
 
     // MARK: - Initialization
 
@@ -317,7 +326,17 @@ public final class Program<M: Model> {
         }
 
         isRunning = true
-        defer { isRunning = false }
+        defer { 
+            isRunning = false
+            isKilled = false
+        }
+        
+        // Send any queued messages before starting main loop
+        let queuedMessages = earlyMessageQueue
+        earlyMessageQueue.removeAll()
+        for msg in queuedMessages {
+            await messageChannel.send(msg)
+        }
 
         // Create actor to safely store error across tasks
         let errorStore = ErrorStore()
@@ -386,9 +405,13 @@ public final class Program<M: Model> {
 
     /// Sends a message to the program from outside the main loop
     public func send(_ message: any Message) {
-        guard isRunning else { return }
-        Task {
-            await messageChannel.send(message)
+        if isRunning {
+            Task {
+                await messageChannel.send(message)
+            }
+        } else {
+            // Queue messages sent before run() is called
+            earlyMessageQueue.append(message)
         }
     }
 
@@ -399,7 +422,11 @@ public final class Program<M: Model> {
 
     /// Forcefully kills the program
     public func kill() {
-        runTask?.cancel()
+        isKilled = true
+        Task {
+            await errorChannel.send(CancellationError())
+            await messageChannel.finish()
+        }
     }
 
     /// Waits for the program to finish
@@ -616,20 +643,22 @@ public final class Program<M: Model> {
         let asyncCancelReader = AsyncCancelReader()
         self.cancelReader = asyncCancelReader
         
-        // Setup input handler
-        let inputSource: FileHandle
-        if isTestMode {
-            inputSource = options.input
-        } else {
-            inputSource = options.forceTTY ? try Terminal.current.openTTY() : options.input
-        }
-        let inputHandler = InputHandler(input: inputSource, cancelReader: asyncCancelReader)
-        self.inputHandler = inputHandler
-        
-        // Start input handling
-        Task {
-            for await message in inputHandler.messages {
-                await messageChannel.send(message)
+        // Setup input handler unless disabled
+        if !options.disableInput {
+            let inputSource: FileHandle
+            if isTestMode {
+                inputSource = options.input
+            } else {
+                inputSource = options.forceTTY ? try Terminal.current.openTTY() : options.input
+            }
+            let inputHandler = InputHandler(input: inputSource, cancelReader: asyncCancelReader)
+            self.inputHandler = inputHandler
+            
+            // Start input handling
+            Task {
+                for await message in inputHandler.messages {
+                    await messageChannel.send(message)
+                }
             }
         }
         
@@ -637,7 +666,7 @@ public final class Program<M: Model> {
         Task {
             for await error in errorChannel {
                 // Handle critical errors that should terminate the program
-                if error is ErrProgramKilled || error is ErrProgramPanic {
+                if error is ErrProgramKilled || error is ErrProgramPanic || error is CancellationError {
                     // Store the error for later handling
                     await errorStore.setError(error)
                     // Signal to exit the main loop
@@ -685,6 +714,13 @@ public final class Program<M: Model> {
         } else if isTestMode {
             // Send a default size for tests
             await messageChannel.send(WindowSizeMsg(width: 80, height: 24))
+        }
+        
+        // Execute the model's init command
+        if let initCommand = model.`init`() {
+            Task {
+                await executeCommand(initCommand)
+            }
         }
         
         await render()
@@ -741,11 +777,12 @@ public final class Program<M: Model> {
 
         // Message processing loop
         for await message in messageChannel {
-            // Handle system messages first
-            if await handleSystemMessage(message) {
-                continue
+            // Check for kill flag or task cancellation
+            if isKilled || Task.isCancelled {
+                await errorChannel.send(CancellationError())
+                break
             }
-
+            
             // Apply filter if present
             let filteredMessage: any Message
             if let filter = options.filter {
@@ -758,7 +795,7 @@ public final class Program<M: Model> {
                 filteredMessage = message
             }
 
-            // Check filtered message for system messages
+            // Handle system messages
             if await handleSystemMessage(filteredMessage) {
                 continue
             }
@@ -771,13 +808,18 @@ public final class Program<M: Model> {
                 // Execute any resulting command
                 if let command {
                     Task {
-                        await executeCommandWithRecovery(command)
+                        await executeCommand(command)
                     }
                 }
 
                 // Render the updated view
                 await render()
             }
+        }
+        
+        // If we exited the loop due to cancellation or kill, send error
+        if isKilled || Task.isCancelled {
+            await errorChannel.send(CancellationError())
         }
     }
 
@@ -982,10 +1024,68 @@ public final class Program<M: Model> {
         print("Call stack:\n\(symbols.joined(separator: "\n"))\n")
     }
     
+    /// Executes a command, handling batch and sequence commands specially
+    private func executeCommand(_ command: Command<M.Msg>) async {
+        // Check if this is a batch command
+        if command.isBatch {
+            // Execute all commands concurrently
+            await withTaskGroup(of: Void.self) { group in
+                for cmd in command.batchCommands {
+                    group.addTask {
+                        await self.executeCommandWithRecovery(cmd)
+                    }
+                }
+            }
+            return
+        }
+        
+        // Check if this is a sequence command
+        if command.isSequence {
+            // Execute commands sequentially
+            for cmd in command.sequenceCommands {
+                await executeCommandWithRecovery(cmd)
+            }
+            return
+        }
+        
+        // Regular command
+        await executeCommandWithRecovery(command)
+    }
+    
     /// Executes a command with panic recovery
     private func executeCommandWithRecovery<Msg: Message>(_ command: Command<Msg>) async {
         // Note: In Swift, we can't directly catch panics like Go's recover()
         // However, we can handle Task cancellation and other errors
+        
+        // Check if this is a quit command
+        if command.isQuit {
+            await messageChannel.send(QuitMsg())
+            return
+        }
+        
+        // Check if this is a batch command
+        if command.isBatch {
+            // Execute all commands concurrently
+            await withTaskGroup(of: Void.self) { group in
+                for cmd in command.batchCommands {
+                    group.addTask {
+                        await self.executeCommandWithRecovery(cmd)
+                    }
+                }
+            }
+            return
+        }
+        
+        // Check if this is a sequence command
+        if command.isSequence {
+            // Execute commands sequentially
+            for cmd in command.sequenceCommands {
+                await executeCommandWithRecovery(cmd)
+            }
+            return
+        }
+        
+        // Regular command
         if let resultMessage = await command.execute() {
             await messageChannel.send(resultMessage)
         }
