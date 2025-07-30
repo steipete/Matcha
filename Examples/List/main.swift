@@ -16,7 +16,7 @@ public struct ListModel: Model {
     
     // Define messages this model can handle
     public enum Message: Matcha.Message {
-        case key(Key)
+        case key(KeyMsg)
         case selectItem
     }
     
@@ -99,7 +99,7 @@ enum ListApp {
         // Add a filter to convert messages
         options.filter = { _, message in
             switch message {
-            case let key as Key:
+            case let key as KeyMsg:
                 switch key.description {
                 case "q", "ctrl+c":
                     return QuitMsg()

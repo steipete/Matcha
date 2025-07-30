@@ -7,7 +7,7 @@ import MatchaStyle
 struct ExecModel: Model {
     // MARK: - Messages
     enum Msg: Message {
-        case key(Key)
+        case key(KeyMsg)
         case commandFinished(stdout: String, stderr: String, exitCode: Int32)
     }
     
@@ -30,7 +30,7 @@ struct ExecModel: Model {
         switch message {
         case .key(let key):
             switch key.type {
-            case .runes where key.runes.contains("q"), .control("c"):
+            case .runes where key.runes.contains("q"), .ctrlC:
                 return (model, quit())
                 
             case .runes where key.runes.contains("l"):

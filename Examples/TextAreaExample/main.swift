@@ -16,7 +16,7 @@ struct TextAreaModel: Model {
     var submittedText: String = ""
     
     enum Message: Matcha.Message {
-        case key(Key)
+        case key(KeyMsg)
         case paste(PasteMsg)
         case submit
         case quit

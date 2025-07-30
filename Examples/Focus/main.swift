@@ -16,7 +16,7 @@ public struct FocusModel: Model {
     public enum Message: Matcha.Message {
         case gainedFocus
         case lostFocus
-        case key(Key)
+        case key(KeyMsg)
     }
     
     public init() {}
@@ -87,7 +87,7 @@ enum FocusApp {
                 return FocusModel.Message.gainedFocus
             case is BlurMsg:
                 return FocusModel.Message.lostFocus
-            case let key as Key:
+            case let key as KeyMsg:
                 switch key.description {
                 case "q", "ctrl+c":
                     return QuitMsg()

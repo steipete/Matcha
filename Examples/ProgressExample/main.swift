@@ -13,7 +13,7 @@ public struct ProgressModel: Model {
     
     // Define messages this model can handle
     public enum Message: Matcha.Message {
-        case key(Key)
+        case key(KeyMsg)
         case tick
         case start
         case reset
@@ -127,7 +127,7 @@ public struct ProgressModel: Model {
         download.emptyColor = style.foreground(.brightBlack)
         download.showPercentage = true
         
-        let downloadPercent = Int(download.percent * 100)
+        _ = Int(download.percent * 100)
         let downloadStatus = isRunning && download.percent < 1.0 ? " Downloading..." : download.percent >= 1.0 ? " Complete!" : " Ready"
         lines.append("\(download.view())\(style.faint().render(downloadStatus))")
         lines.append("")
@@ -196,7 +196,7 @@ enum ProgressApp {
         // Add a filter to convert messages
         options.filter = { _, message in
             switch message {
-            case let key as Key:
+            case let key as KeyMsg:
                 switch key.description {
                 case "q", "ctrl+c":
                     return QuitMsg()

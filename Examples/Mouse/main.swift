@@ -20,8 +20,8 @@ public struct MouseModel: Model {
     public enum Message: Matcha.Message {
         case toggleMouse
         case setMouseMode(MouseMode)
-        case mouseEvent(MouseEvent)
-        case key(Key)
+        case mouseEvent(MouseMsg)
+        case key(KeyMsg)
     }
 
     public init() {}
@@ -149,14 +149,14 @@ enum MouseApp {
 
         // Add a filter to handle messages
         options.filter = { model, message in
-            if let key = message as? Key {
+            if let key = message as? KeyMsg {
                 switch key.description {
                 case "q", "ctrl+c":
                     return QuitMsg()
                 default:
                     return MouseModel.Message.key(key)
                 }
-            } else if let mouse = message as? MouseEvent {
+            } else if let mouse = message as? MouseMsg {
                 return MouseModel.Message.mouseEvent(mouse)
             }
             return message

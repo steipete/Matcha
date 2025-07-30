@@ -18,7 +18,7 @@ struct FileBrowserModel: Model {
     var filter: FileBrowser.FileFilter = .all
     
     enum Message: Matcha.Message {
-        case key(Key)
+        case key(KeyMsg)
         case selectFile(String)
         case toggleHidden
         case toggleDetails

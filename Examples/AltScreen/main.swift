@@ -17,7 +17,7 @@ public struct AltScreenModel: Model {
     public enum Message: Matcha.Message {
         case toggleScreen
         case increment
-        case key(Key)
+        case key(KeyMsg)
     }
 
     public init() {}
@@ -127,7 +127,7 @@ enum AltScreenApp {
 
         // Add a filter to intercept quit keys
         options.filter = { _, message in
-            if let key = message as? Key {
+            if let key = message as? KeyMsg {
                 switch key.description {
                 case "q", "ctrl+c":
                     return QuitMsg()

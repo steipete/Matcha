@@ -17,7 +17,7 @@ struct ConfirmationModel: Model {
     var secondConfirmation: Confirmation?
     
     enum Message: Matcha.Message {
-        case key(Key)
+        case key(KeyMsg)
         case showSecondDialog
         case quit
     }

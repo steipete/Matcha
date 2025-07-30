@@ -124,7 +124,7 @@ struct FullScreenApp {
         options.useAltScreen = true
         options.mouseMode = .disabled
         options.filter = { _, message in
-            if let key = message as? Key {
+            if let key = message as? KeyMsg {
                 switch key.description {
                 case "q", "ctrl+c":
                     return QuitMsg()

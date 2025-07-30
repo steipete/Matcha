@@ -19,7 +19,7 @@ public struct StopwatchModel: Model {
     
     // Define messages this model can handle
     public enum Message: Matcha.Message {
-        case key(Key)
+        case key(KeyMsg)
         case stopwatchTick(StopwatchTickMsg)
         case addLap
         case toggleHelp
@@ -183,7 +183,7 @@ enum StopwatchApp {
         // Add a filter to convert messages
         options.filter = { _, message in
             switch message {
-            case let key as Key:
+            case let key as KeyMsg:
                 switch key.description {
                 case "q", "ctrl+c":
                     return QuitMsg()

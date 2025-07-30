@@ -23,7 +23,7 @@ public struct TextInputModel: Model {
     
     // Define messages this model can handle
     public enum Message: Matcha.Message {
-        case key(Key)
+        case key(KeyMsg)
         case paste(PasteMsg)
         case switchField
     }
@@ -145,7 +145,7 @@ enum TextInputApp {
         // Add a filter to convert messages
         options.filter = { _, message in
             switch message {
-            case let key as Key:
+            case let key as KeyMsg:
                 switch key.description {
                 case "ctrl+c":
                     return QuitMsg()

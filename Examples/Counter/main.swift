@@ -16,7 +16,7 @@ public struct CounterModel: Model {
         case increment
         case decrement
         case reset
-        case key(Key)
+        case key(KeyMsg)
     }
 
     // Initialize with default values
@@ -62,43 +62,58 @@ public struct CounterModel: Model {
 
     // Render the view
     public func view() -> String {
-        let width = 60
-        let border = "─"
-        let topBorder = "┌" + String(repeating: border, count: width - 2) + "┐"
-        let bottomBorder = "└" + String(repeating: border, count: width - 2) + "┘"
-        let divider = "├" + String(repeating: border, count: width - 2) + "┤"
+        // Step 1: Start with the simplest possible box
+        var lines: [String] = []
         
+        // Step 2: Define consistent width
+        let innerWidth = 40
+        
+        // Step 3: Build top border
+        lines.append("┌" + String(repeating: "─", count: innerWidth) + "┐")
+        
+        // Step 4: Add title
         let title = "Counter Example"
-        let titlePadding = (width - 2 - title.count) / 2
-        let titleLine = "│" + String(repeating: " ", count: titlePadding) + title + String(repeating: " ", count: width - 2 - titlePadding - title.count) + "│"
+        let titlePadding = (innerWidth - title.count) / 2
+        let titleLine = String(repeating: " ", count: titlePadding) + title + String(repeating: " ", count: innerWidth - titlePadding - title.count)
+        lines.append("│" + titleLine + "│")
         
+        // Step 5: Add divider
+        lines.append("├" + String(repeating: "─", count: innerWidth) + "┤")
+        
+        // Step 6: Add empty line
+        lines.append("│" + String(repeating: " ", count: innerWidth) + "│")
+        
+        // Step 7: Add count
         let countText = "Count: \(count)"
-        let countPadding = (width - 2 - countText.count) / 2
-        let countLine = "│" + String(repeating: " ", count: countPadding) + countText + String(repeating: " ", count: width - 2 - countPadding - countText.count) + "│"
+        let countPadding = (innerWidth - countText.count) / 2
+        let countLine = String(repeating: " ", count: countPadding) + countText + String(repeating: " ", count: innerWidth - countPadding - countText.count)
+        lines.append("│" + countLine + "│")
         
-        let emptyLine = "│" + String(repeating: " ", count: width - 2) + "│"
+        // Step 8: Add another empty line
+        lines.append("│" + String(repeating: " ", count: innerWidth) + "│")
         
-        // Controls on single lines
-        let controls1 = "↑/+  Increment          ↓/-  Decrement"
-        let controls1Padding = (width - 2 - controls1.count) / 2
-        let controlsLine1 = "│" + String(repeating: " ", count: controls1Padding) + controls1 + String(repeating: " ", count: width - 2 - controls1Padding - controls1.count) + "│"
+        // Step 9: Add second divider
+        lines.append("├" + String(repeating: "─", count: innerWidth) + "┤")
         
-        let controls2 = "0/r  Reset              q    Quit"
-        let controls2Padding = (width - 2 - controls2.count) / 2
-        let controlsLine2 = "│" + String(repeating: " ", count: controls2Padding) + controls2 + String(repeating: " ", count: width - 2 - controls2Padding - controls2.count) + "│"
+        // Step 10: Add controls - first row
+        let ctrl1 = "↑/+  Increment"
+        let ctrl2 = "↓/-  Decrement"
+        let spacing1 = innerWidth - ctrl1.count - ctrl2.count - 4 // 4 for padding
+        let controlLine1 = "  " + ctrl1 + String(repeating: " ", count: spacing1) + ctrl2 + "  "
+        lines.append("│" + controlLine1 + "│")
         
-        return [
-            topBorder,
-            titleLine,
-            divider,
-            emptyLine,
-            countLine,
-            emptyLine,
-            divider,
-            controlsLine1,
-            controlsLine2,
-            bottomBorder
-        ].joined(separator: "\n")
+        // Step 11: Add controls - second row
+        let ctrl3 = "0/r  Reset"
+        let ctrl4 = "q    Quit"
+        let spacing2 = innerWidth - ctrl3.count - ctrl4.count - 4 // 4 for padding
+        let controlLine2 = "  " + ctrl3 + String(repeating: " ", count: spacing2) + ctrl4 + "  "
+        lines.append("│" + controlLine2 + "│")
+        
+        // Step 12: Add bottom border
+        lines.append("└" + String(repeating: "─", count: innerWidth) + "┘")
+        
+        // Step 13: Join all lines
+        return lines.joined(separator: "\n")
     }
 }
 
@@ -110,7 +125,7 @@ enum CounterApp {
 
         // Add a filter to intercept quit keys
         options.filter = { _, message in
-            if let key = message as? Key {
+            if let key = message as? KeyMsg {
                 switch key.description {
                 case "q", "ctrl+c":
                     // Convert quit keys to QuitMsg

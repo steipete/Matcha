@@ -24,7 +24,7 @@ struct KeyBindingModel: Model, KeyBindable {
     }
     
     enum Message: Matcha.Message {
-        case key(Key)
+        case key(KeyMsg)
         case action(String)
         case toggleHelp
         case switchMode(Mode)

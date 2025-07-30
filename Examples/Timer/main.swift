@@ -18,7 +18,7 @@ public struct TimerModel: Model {
         case tick(Date)
         case toggleTimer
         case reset
-        case key(Key)
+        case key(KeyMsg)
     }
 
     public init() {}
@@ -103,7 +103,7 @@ enum TimerApp {
 
         // Add a filter to intercept quit keys
         options.filter = { _, message in
-            if let key = message as? Key {
+            if let key = message as? KeyMsg {
                 switch key.description {
                 case "q", "ctrl+c":
                     return QuitMsg()

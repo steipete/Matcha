@@ -17,7 +17,7 @@ struct TabsModel: Model {
     var showUnderline: Bool = true
     
     enum Message: Matcha.Message {
-        case key(Key)
+        case key(KeyMsg)
         case selectTab(Int)
         case toggleEqualWidth
         case toggleUnderline
