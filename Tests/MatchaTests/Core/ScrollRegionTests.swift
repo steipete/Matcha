@@ -200,17 +200,20 @@ struct ScrollRegionTests {
             // Test sync - the model triggers the action, renderer handles the actual message
             await tester.send(.sync)
             try await Task.sleep(for: .milliseconds(50))
-            #expect(tester.model.synced)
+            let view1 = tester.getCurrentView()
+            #expect(view1.contains("synced: true"))
             
             // Test scroll up
             await tester.send(.scrollUp)
             try await Task.sleep(for: .milliseconds(50))
-            #expect(tester.model.scrolledUp)
+            let view2 = tester.getCurrentView()
+            #expect(view2.contains("scrolledUp: true"))
             
             // Test scroll down
             await tester.send(.scrollDown)
             try await Task.sleep(for: .milliseconds(50))
-            #expect(tester.model.scrolledDown)
+            let view3 = tester.getCurrentView()
+            #expect(view3.contains("scrolledDown: true"))
         }
     }
 }
