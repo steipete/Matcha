@@ -643,10 +643,9 @@ public func Batch<M: Message>(_ cmds: Command<M>...) -> Command<M> {
     case 1:
         return validCmds[0]
     default:
-        var batchCmd = Command<M> { nil }
-        batchCmd.isBatch = true
-        batchCmd.batchCommands = validCmds
-        return batchCmd
+        return Command { () async -> M? in
+            BatchMsg(validCmds) as? M
+        }
     }
 }
 
@@ -662,10 +661,9 @@ public func Batch<M: Message>(_ cmds: [Command<M>]) -> Command<M> {
     case 1:
         return validCmds[0]
     default:
-        var batchCmd = Command<M> { nil }
-        batchCmd.isBatch = true
-        batchCmd.batchCommands = validCmds
-        return batchCmd
+        return Command { () async -> M? in
+            BatchMsg(validCmds) as? M
+        }
     }
 }
 

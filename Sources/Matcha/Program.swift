@@ -1024,31 +1024,8 @@ public final class Program<M: Model> {
         print("Call stack:\n\(symbols.joined(separator: "\n"))\n")
     }
     
-    /// Executes a command, handling batch and sequence commands specially
+    /// Executes a command
     private func executeCommand(_ command: Command<M.Msg>) async {
-        // Check if this is a batch command
-        if command.isBatch {
-            // Execute all commands concurrently
-            await withTaskGroup(of: Void.self) { group in
-                for cmd in command.batchCommands {
-                    group.addTask {
-                        await self.executeCommandWithRecovery(cmd)
-                    }
-                }
-            }
-            return
-        }
-        
-        // Check if this is a sequence command
-        if command.isSequence {
-            // Execute commands sequentially
-            for cmd in command.sequenceCommands {
-                await executeCommandWithRecovery(cmd)
-            }
-            return
-        }
-        
-        // Regular command
         await executeCommandWithRecovery(command)
     }
     
@@ -1063,29 +1040,7 @@ public final class Program<M: Model> {
             return
         }
         
-        // Check if this is a batch command
-        if command.isBatch {
-            // Execute all commands concurrently
-            await withTaskGroup(of: Void.self) { group in
-                for cmd in command.batchCommands {
-                    group.addTask {
-                        await self.executeCommandWithRecovery(cmd)
-                    }
-                }
-            }
-            return
-        }
-        
-        // Check if this is a sequence command
-        if command.isSequence {
-            // Execute commands sequentially
-            for cmd in command.sequenceCommands {
-                await executeCommandWithRecovery(cmd)
-            }
-            return
-        }
-        
-        // Regular command
+        // Execute the command
         if let resultMessage = await command.execute() {
             await messageChannel.send(resultMessage)
         }
