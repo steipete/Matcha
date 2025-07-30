@@ -683,18 +683,16 @@ public func batch<M: Message>(_ commands: Command<M>...) -> Command<M> {
 /// Sequence runs the given commands one at a time, in order. Contrast this with
 /// Batch, which runs commands concurrently.
 public func Sequence<M: Message>(_ cmds: Command<M>...) -> Command<M> {
-    var seqCmd = Command<M> { nil }
-    seqCmd.isSequence = true
-    seqCmd.sequenceCommands = cmds
-    return seqCmd
+    return Command { () async -> M? in
+        SequenceMsg(cmds) as? M
+    }
 }
 
 /// Sequence runs the given commands one at a time, in order.
 public func Sequence<M: Message>(_ cmds: [Command<M>]) -> Command<M> {
-    var seqCmd = Command<M> { nil }
-    seqCmd.isSequence = true
-    seqCmd.sequenceCommands = cmds
-    return seqCmd
+    return Command { () async -> M? in
+        SequenceMsg(cmds) as? M
+    }
 }
 
 /// Sequentially produces a command that sequentially executes the given
