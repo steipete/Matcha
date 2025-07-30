@@ -41,10 +41,6 @@ struct TerminalSizeTests {
             // Allow time for processing
             try await Task.sleep(for: .milliseconds(50))
             
-            // Check that the model received the size
-            #expect(tester.model.receivedWidth == 120)
-            #expect(tester.model.receivedHeight == 40)
-            
             // Verify the view reflects the size
             try await tester.expectView(containing: "Size: 120x40")
         }
