@@ -174,7 +174,7 @@ struct MatchaIntegrationTests {
             }
             
             init() {
-                textInput.placeholder = "Enter text..."
+                textInput = textInput.withPlaceholder("Enter text...").withFocus(true)
             }
             
             func `init`() -> Command<Message>? {

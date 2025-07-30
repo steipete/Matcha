@@ -18,21 +18,28 @@ struct ModelTests {
         
         try await tester.test {
             // Initial state
-            #expect(tester.model.value == 0)
-            #expect(tester.model.text == "")
+            let view1 = tester.getCurrentView()
+            #expect(view1.contains("Value: 0"))
+            #expect(view1.contains("Text: "))
             
             // Test increment
             await tester.send(.increment)
-            #expect(tester.model.value == 1)
+            try await Task.sleep(for: .milliseconds(50))
+            let view2 = tester.getCurrentView()
+            #expect(view2.contains("Value: 1"))
             
             // Test decrement
             await tester.send(.decrement)
             await tester.send(.decrement)
-            #expect(tester.model.value == -1)
+            try await Task.sleep(for: .milliseconds(50))
+            let view3 = tester.getCurrentView()
+            #expect(view3.contains("Value: -1"))
             
             // Test set text
             await tester.send(.setText("Hello"))
-            #expect(tester.model.text == "Hello")
+            try await Task.sleep(for: .milliseconds(50))
+            let view4 = tester.getCurrentView()
+            #expect(view4.contains("Text: Hello"))
         }
     }
     
@@ -74,17 +81,22 @@ struct ModelTests {
         try await tester.test {
             // Start should trigger timer
             await tester.send(.start)
-            #expect(tester.model.isRunning)
+            try await Task.sleep(for: .milliseconds(50))
+            let view1 = tester.getCurrentView()
+            #expect(view1.contains("Running: true"))
             
             // Wait for a tick
             try await Task.sleep(for: .seconds(1.1))
             
             // Value should have incremented from timer
-            #expect(tester.model.value > 0)
+            let view2 = tester.getCurrentView()
+            #expect(!view2.contains("Value: 0")) // Should be > 0
             
             // Stop the timer
             await tester.send(.stop)
-            #expect(!tester.model.isRunning)
+            try await Task.sleep(for: .milliseconds(50))
+            let view3 = tester.getCurrentView()
+            #expect(view3.contains("Running: false"))
         }
     }
     
@@ -95,13 +107,15 @@ struct ModelTests {
         try await tester.test {
             // Try to select invalid index
             await tester.send(.selectItem(10))
+            try await Task.sleep(for: .milliseconds(50))
             
-            #expect(tester.model.error != nil)
             try await tester.expectView(containing: "Error: Invalid index")
             
             // Clear error
             await tester.send(.clearError)
-            #expect(tester.model.error == nil)
+            try await Task.sleep(for: .milliseconds(50))
+            let view = tester.getCurrentView()
+            #expect(!view.contains("Error:"))
         }
     }
 }

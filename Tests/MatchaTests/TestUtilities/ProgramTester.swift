@@ -77,7 +77,8 @@ public class ProgramTester<M: Model> {
             action: action,
             button: button
         )
-        if let msg = mouseEvent as? M.Msg {
+        let mouseMsg = MouseMsg(mouseEvent)
+        if let msg = mouseMsg as? M.Msg {
             await send(msg)
         }
     }
